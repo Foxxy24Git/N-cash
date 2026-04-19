@@ -11,6 +11,7 @@
   "dependencies": {
     "@base-ui/react": "^1.4.0",
     "@prisma/client": "^7.7.0",
+    "@radix-ui/react-slot": "^1.2.4",
     "@types/bcryptjs": "^2.4.6",
     "@types/better-sqlite3": "^7.6.13",
     "bcryptjs": "^3.0.3",
