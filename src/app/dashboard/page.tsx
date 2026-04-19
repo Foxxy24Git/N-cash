@@ -1,5 +1,4 @@
-import { auth } from '@/auth'
-import { signOut } from '@/auth'
+import { auth, signOut } from '@/auth'
 import { redirect } from 'next/navigation'
 
 export const metadata = { title: 'Dashboard — N-Cash' }

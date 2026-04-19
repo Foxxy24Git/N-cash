@@ -27,6 +27,7 @@ export default function LoginForm() {
       setError('Username atau password salah')
       setLoading(false)
     } else {
+      router.refresh()
       router.push('/dashboard')
     }
   }
