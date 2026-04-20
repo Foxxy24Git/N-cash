@@ -246,6 +246,7 @@ export default function NewTransactionForm() {
   }
 
   const resetForm = () => {
+    const today = new Date().toISOString().slice(0, 10)
     setInvoiceNumber('')
     setDate(today)
     setItems([createItem()])
@@ -257,26 +258,30 @@ export default function NewTransactionForm() {
     e.preventDefault()
     setIsSubmitting(true)
 
-    const result = await createTransaction({
-      invoiceNumber,
-      date,
-      paymentMethod,
-      bankId: selectedBankId || undefined,
-      items: items.map((item) => ({
-        itemName: item.itemName,
-        qty: parseQty(item.qty),
-        unitPrice: item.unitPrice,
-        subtotal: item.subtotal,
-      })),
-    })
+    try {
+      const result = await createTransaction({
+        invoiceNumber,
+        date,
+        paymentMethod,
+        bankId: selectedBankId || undefined,
+        items: items.map((item) => ({
+          itemName: item.itemName,
+          qty: parseQty(item.qty),
+          unitPrice: item.unitPrice,
+          subtotal: item.subtotal,
+        })),
+      })
 
-    setIsSubmitting(false)
-
-    if (result.success) {
-      toast.success('Transaksi berhasil disimpan')
-      resetForm()
-    } else {
-      toast.error(result.error)
+      if (result.success) {
+        toast.success('Transaksi berhasil disimpan')
+        resetForm()
+      } else {
+        toast.error(result.error)
+      }
+    } catch {
+      toast.error('Terjadi kesalahan, coba lagi')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
