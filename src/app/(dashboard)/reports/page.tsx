@@ -88,6 +88,10 @@ export default async function ReportsPage({ searchParams }: PageProps) {
   const prevUrl = page > 1           ? buildPageUrl(page - 1) : null
   const nextUrl = page < totalPages  ? buildPageUrl(page + 1) : null
 
+  const exportParams = new URLSearchParams(baseParams)
+  exportParams.delete('page')
+  const exportHref = `/api/reports/export?${exportParams.toString()}`
+
   return (
     <div className="max-w-6xl mx-auto space-y-5">
       <h1 className="text-xl font-semibold text-gray-900">Laporan Transaksi</h1>
@@ -100,6 +104,21 @@ export default async function ReportsPage({ searchParams }: PageProps) {
           search={search}
         />
       </Suspense>
+
+      <div className="flex justify-end">
+        <a
+          href={totalCount > 0 ? exportHref : undefined}
+          aria-disabled={totalCount === 0}
+          className={[
+            'inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+            totalCount > 0
+              ? 'bg-green-600 text-white hover:bg-green-700'
+              : 'bg-gray-200 text-gray-400 cursor-not-allowed pointer-events-none',
+          ].join(' ')}
+        >
+          📥 Download Laporan Excel
+        </a>
+      </div>
 
       <SummaryCards totals={totals} />
 
