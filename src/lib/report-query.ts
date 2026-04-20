@@ -1,6 +1,6 @@
 export const PAGE_SIZE = 20
 
-export type PaymentMethodFilter = 'Cash' | 'QRIS' | 'Transfer Bank' | 'BON' | ''
+export type PaymentMethodFilter = 'Cash' | 'Cash COD' | 'QRIS' | 'Transfer Bank' | 'BON' | ''
 
 export interface ReportParams {
   dateFrom: Date   // inclusive lower bound (Jakarta midnight as UTC)
