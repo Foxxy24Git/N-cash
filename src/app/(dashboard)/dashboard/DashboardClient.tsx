@@ -1,9 +1,9 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, type ReactNode } from 'react'
 
-export default function DashboardClient({ children }: { children: React.ReactNode }) {
+export default function DashboardClient({ children }: { children: ReactNode }) {
   const router = useRouter()
 
   useEffect(() => {
