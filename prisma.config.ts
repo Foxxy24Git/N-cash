@@ -7,4 +7,7 @@ const dbUrl = `file:${dbPath}`
 
 export default defineConfig({
   schema: 'prisma/schema.prisma',
+  datasource: {
+    url: dbUrl,
+  },
 })
