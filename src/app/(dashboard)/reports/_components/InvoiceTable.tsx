@@ -4,7 +4,7 @@ import {
 import { formatRupiah } from '@/lib/format'
 import { PAGE_SIZE } from '@/lib/report-query'
 import type { InvoiceRow } from '@/lib/report-query'
-import DetailButton from './DetailButton'
+import ActionButtons from './ActionButtons'
 
 const METHOD_BADGE: Record<string, string> = {
   'Cash':          'bg-green-100 text-green-800 border-green-200',
@@ -63,7 +63,7 @@ export default function InvoiceTable({ rows, totalCount, page, prevUrl, nextUrl 
                     </span>
                   </TableCell>
                   <TableCell className="text-center">
-                    <DetailButton invoiceId={row.id} />
+                    <ActionButtons invoiceId={row.id} invoiceNumber={row.invoiceNumber} />
                   </TableCell>
                 </TableRow>
               ))
