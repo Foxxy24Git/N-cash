@@ -9,7 +9,8 @@ export const metadata = { title: 'Dashboard — N-Cash' }
 function getTodayBoundsJakarta(): { todayStart: Date; todayEnd: Date } {
   const todayJakarta = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' })
   const todayStart = new Date(`${todayJakarta}T00:00:00+07:00`)
-  const todayEnd = new Date(`${todayJakarta}T23:59:59.999+07:00`)
+  const todayEnd = new Date(todayStart)
+  todayEnd.setDate(todayEnd.getDate() + 1)
   return { todayStart, todayEnd }
 }
 
@@ -20,13 +21,14 @@ function formatRupiah(amount: number): string {
 export default async function DashboardPage() {
   const { todayStart, todayEnd } = getTodayBoundsJakarta()
 
+  // invoices stored with date=YYYY-MM-DDT00:00:00Z (UTC midnight); Jakarta bounds contain it
   const invoices = await prisma.invoice.findMany({
     where: {
       deletedAt: null,
-      date: { gte: todayStart, lte: todayEnd },
+      date: { gte: todayStart, lt: todayEnd },
     },
     select: { totalAmount: true, paymentMethod: true },
-  })
+  }).catch(() => [])
 
   let total = 0
   let cash = 0
