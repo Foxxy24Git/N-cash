@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { Plus, Trash2, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getBanks } from '../_actions/getBanks'
+import { toast } from 'sonner'
+import { createTransaction } from '../_actions/createTransaction'
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
@@ -218,6 +220,7 @@ export default function NewTransactionForm() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('Cash')
   const [selectedBankId, setSelectedBankId] = useState('')
   const [banks, setBanks] = useState<Bank[]>([])
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     getBanks().then(setBanks)
@@ -242,22 +245,39 @@ export default function NewTransactionForm() {
     if (method !== 'Transfer Bank') setSelectedBankId('')
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const resetForm = () => {
+    setInvoiceNumber('')
+    setDate(today)
+    setItems([createItem()])
+    setPaymentMethod('Cash')
+    setSelectedBankId('')
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('Form data:', {
+    setIsSubmitting(true)
+
+    const result = await createTransaction({
       invoiceNumber,
       date,
+      paymentMethod,
+      bankId: selectedBankId || undefined,
       items: items.map((item) => ({
         itemName: item.itemName,
         qty: parseQty(item.qty),
         unitPrice: item.unitPrice,
         subtotal: item.subtotal,
-        isSubtotalOverridden: item.isOverridden,
       })),
-      paymentMethod,
-      bankId: paymentMethod === 'Transfer Bank' ? selectedBankId : null,
-      totalBelanja,
     })
+
+    setIsSubmitting(false)
+
+    if (result.success) {
+      toast.success('Transaksi berhasil disimpan')
+      resetForm()
+    } else {
+      toast.error(result.error)
+    }
   }
 
   const inputBase =
@@ -425,10 +445,12 @@ export default function NewTransactionForm() {
       <div className="pb-6">
         <button
           type="submit"
+          disabled={isSubmitting}
           className="w-full py-3.5 bg-blue-600 text-white font-semibold rounded-xl
-            hover:bg-blue-700 active:bg-blue-800 transition-colors text-base"
+            hover:bg-blue-700 active:bg-blue-800 transition-colors text-base
+            disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          Simpan Transaksi
+          {isSubmitting ? 'Menyimpan...' : 'Simpan Transaksi'}
         </button>
       </div>
 
