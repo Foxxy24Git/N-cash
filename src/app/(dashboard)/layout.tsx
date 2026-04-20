@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import Sidebar from './_components/Sidebar'
 import Header from './_components/Header'
 import BottomNav from './_components/BottomNav'
+import { Toaster } from '@/components/ui/sonner'
 
 export default async function DashboardLayout({
   children,
@@ -26,6 +27,7 @@ export default async function DashboardLayout({
         </main>
       </div>
       <BottomNav />
+      <Toaster position="top-center" richColors />
     </div>
   )
 }
