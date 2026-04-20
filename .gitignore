@@ -37,3 +37,7 @@ next-env.d.ts
 
 # git worktrees
 .worktrees/
+
+# logo uploads — directory tracked via .gitkeep, contents ignored
+/public/uploads/*
+!/public/uploads/.gitkeep
