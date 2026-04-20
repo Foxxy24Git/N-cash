@@ -6,12 +6,5 @@ const dbPath = path.join(__dirname, 'prisma', 'dev.db')
 const dbUrl = `file:${dbPath}`
 
 export default defineConfig({
-  earlyAccess: true,
   schema: 'prisma/schema.prisma',
-  datasource: {
-    url: dbUrl,
-  },
-  migrate: {
-    adapter: () => new PrismaBetterSqlite3({ url: dbUrl }),
-  },
 })
