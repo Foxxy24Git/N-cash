@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { format } from 'date-fns'
 import { Plus, Trash2, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getBanks } from '../_actions/getBanks'
@@ -212,7 +213,7 @@ function ItemRow({
 type Bank = { id: string; name: string }
 
 export default function NewTransactionForm() {
-  const today = new Date().toISOString().slice(0, 10)
+  const today = format(new Date(), 'yyyy-MM-dd')
 
   const [invoiceNumber, setInvoiceNumber] = useState('')
   const [date, setDate] = useState(today)
@@ -246,7 +247,7 @@ export default function NewTransactionForm() {
   }
 
   const resetForm = () => {
-    const today = new Date().toISOString().slice(0, 10)
+    const today = format(new Date(), 'yyyy-MM-dd')
     setInvoiceNumber('')
     setDate(today)
     setItems([createItem()])
