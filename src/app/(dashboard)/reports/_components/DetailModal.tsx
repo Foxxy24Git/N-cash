@@ -32,13 +32,20 @@ interface Props {
 export default function DetailModal({ invoiceId, open, onClose }: Props) {
   const [data, setData] = useState<InvoiceDetail | null>(null)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
+    setData(null)
+    setError(false)
     if (!open) return
     setLoading(true)
     fetch(`/api/invoices/${invoiceId}`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error('fetch failed')
+        return r.json()
+      })
       .then((d: InvoiceDetail) => setData(d))
+      .catch(() => setError(true))
       .finally(() => setLoading(false))
   }, [open, invoiceId])
 
@@ -60,6 +67,12 @@ export default function DetailModal({ invoiceId, open, onClose }: Props) {
 
         {loading && (
           <div className="py-10 text-center text-sm text-gray-400">Memuat data...</div>
+        )}
+
+        {error && (
+          <div className="py-10 text-center text-sm text-red-500">
+            Gagal memuat data. Coba lagi.
+          </div>
         )}
 
         {!loading && data && (
