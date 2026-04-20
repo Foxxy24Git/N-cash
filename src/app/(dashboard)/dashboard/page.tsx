@@ -37,10 +37,10 @@ export default async function DashboardPage() {
   for (const inv of invoices) {
     const amount = Number(inv.totalAmount)
     total += amount
-    if (inv.paymentMethod === 'CASH' || inv.paymentMethod === 'CASH_COD') cash += amount
+    if (inv.paymentMethod === 'Cash' || inv.paymentMethod === 'Cash COD') cash += amount
     else if (inv.paymentMethod === 'QRIS') qris += amount
-    else if (inv.paymentMethod === 'BANK_TRANSFER') bank += amount
-    else if (inv.paymentMethod === 'UNPAID') bon += amount
+    else if (inv.paymentMethod === 'Transfer Bank') bank += amount
+    else if (inv.paymentMethod === 'BON') bon += amount
   }
 
   const cards = [
@@ -55,7 +55,7 @@ export default async function DashboardPage() {
       label: 'Total Pembayaran Cash',
       value: formatRupiah(cash),
       icon: Banknote,
-      href: '/reports?date=today&method=CASH',
+      href: '/reports?date=today&method=Cash',
       colorScheme: 'green' as const,
     },
     {
@@ -69,14 +69,14 @@ export default async function DashboardPage() {
       label: 'Total Transfer via Bank',
       value: formatRupiah(bank),
       icon: Landmark,
-      href: '/reports?date=today&method=BANK_TRANSFER',
+      href: '/reports?date=today&method=Transfer Bank',
       colorScheme: 'yellow' as const,
     },
     {
       label: 'Total Belum Bayar (BON)',
       value: formatRupiah(bon),
       icon: AlertCircle,
-      href: '/reports?date=today&method=UNPAID',
+      href: '/reports?date=today&method=BON',
       colorScheme: 'red' as const,
     },
   ]
