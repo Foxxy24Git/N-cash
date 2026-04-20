@@ -22,7 +22,7 @@ export default function StatCard({ label, value, icon: Icon, href, colorScheme }
   return (
     <Link
       href={href}
-      className={`${c.bg} rounded-xl p-5 flex items-center gap-4 transition-colors cursor-pointer border border-transparent hover:border-current/10 group`}
+      className={`${c.bg} rounded-xl p-5 flex items-center gap-4 transition-colors`}
     >
       <div className={`${c.icon} shrink-0`}>
         <Icon size={32} strokeWidth={1.5} />
