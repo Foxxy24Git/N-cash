@@ -1,5 +1,6 @@
 import { Wallet, Banknote, Smartphone, Landmark, AlertCircle } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
+import { formatRupiah } from '@/lib/format'
 import StatCard from './StatCard'
 import DashboardClient from './DashboardClient'
 
@@ -12,10 +13,6 @@ function getTodayBoundsJakarta(): { todayStart: Date; todayEnd: Date } {
   const todayEnd = new Date(todayStart)
   todayEnd.setDate(todayEnd.getDate() + 1)
   return { todayStart, todayEnd }
-}
-
-function formatRupiah(amount: number): string {
-  return 'Rp ' + new Intl.NumberFormat('id-ID').format(amount)
 }
 
 export default async function DashboardPage() {
