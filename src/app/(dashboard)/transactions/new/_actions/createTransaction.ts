@@ -1,5 +1,6 @@
 'use server'
 
+import { Prisma } from '@prisma/client'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 
@@ -35,25 +36,13 @@ export async function createTransaction(payload: unknown): Promise<Result> {
 
   const { invoiceNumber, date, paymentMethod, bankId, items } = parsed.data
 
-  // SQLite does not support mode: 'insensitive' — do manual case-insensitive check
-  const allInvoices = await prisma.invoice.findMany({
-    where: { deletedAt: null },
-    select: { invoiceNumber: true },
-  })
-  const isDuplicate = allInvoices.some(
-    (inv) => inv.invoiceNumber.toLowerCase() === invoiceNumber.toLowerCase()
-  )
-  if (isDuplicate) {
-    return { success: false, error: 'Nomor faktur sudah digunakan' }
-  }
-
   const totalAmount = items.reduce((sum, item) => sum + item.subtotal, 0)
 
   try {
     await prisma.invoice.create({
       data: {
         invoiceNumber,
-        date: new Date(date),
+        date: new Date(date + 'T00:00:00Z'),
         totalAmount,
         paymentMethod,
         bankId: paymentMethod === 'Transfer Bank' ? bankId : null,
@@ -69,7 +58,13 @@ export async function createTransaction(payload: unknown): Promise<Result> {
     })
 
     return { success: true }
-  } catch {
+  } catch (err) {
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === 'P2002'
+    ) {
+      return { success: false, error: 'Nomor faktur sudah digunakan' }
+    }
     return { success: false, error: 'Terjadi kesalahan, coba lagi' }
   }
 }
