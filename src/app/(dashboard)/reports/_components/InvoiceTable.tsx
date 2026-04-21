@@ -58,9 +58,33 @@ export default function InvoiceTable({ rows, totalCount, page, prevUrl, nextUrl 
                     {formatRupiah(row.totalAmount)}
                   </TableCell>
                   <TableCell>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${METHOD_BADGE[row.paymentMethod] ?? 'bg-gray-100 text-gray-700 border-gray-200'}`}>
-                      {row.paymentMethod}{row.bankName ? ` — ${row.bankName}` : ''}
-                    </span>
+                    {(() => {
+                      const isBon = row.paymentMethod === 'BON' || row.paymentMethod === 'UNPAID'
+                      const isLunas = isBon && row.paidAt !== null
+                      if (isLunas) {
+                        const tgl = new Date(row.paidAt!).toLocaleDateString('id-ID', {
+                          timeZone: 'Asia/Jakarta',
+                          day: '2-digit', month: '2-digit', year: 'numeric',
+                        })
+                        return (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border bg-gray-100 text-gray-600 border-gray-300">
+                            🔴 BON (Lunas {tgl})
+                          </span>
+                        )
+                      }
+                      if (isBon) {
+                        return (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border bg-red-100 text-red-800 border-red-200">
+                            🔴 BON
+                          </span>
+                        )
+                      }
+                      return (
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${METHOD_BADGE[row.paymentMethod] ?? 'bg-gray-100 text-gray-700 border-gray-200'}`}>
+                          {row.paymentMethod}{row.bankName ? ` — ${row.bankName}` : ''}
+                        </span>
+                      )
+                    })()}
                   </TableCell>
                   <TableCell className="text-center">
                     <ActionButtons invoiceId={row.id} invoiceNumber={row.invoiceNumber} />
