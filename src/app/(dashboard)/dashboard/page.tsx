@@ -19,13 +19,17 @@ export default async function DashboardPage() {
   const { todayStart, todayEnd } = getTodayBoundsJakarta()
 
   // invoices stored with date=YYYY-MM-DDT00:00:00Z (UTC midnight); Jakarta bounds contain it
-  const invoices = await prisma.invoice.findMany({
-    where: {
-      deletedAt: null,
-      date: { gte: todayStart, lt: todayEnd },
-    },
-    select: { totalAmount: true, paymentMethod: true },
-  }).catch(() => [])
+  const [invoices, paymentLogs] = await Promise.all([
+    prisma.invoice.findMany({
+      where: { deletedAt: null, date: { gte: todayStart, lt: todayEnd } },
+      select: { totalAmount: true, paymentMethod: true, paidAt: true },
+    }).catch(() => []),
+    // BON settlements recorded today (may be for invoices from any date)
+    prisma.paymentLog.findMany({
+      where: { paidAt: { gte: todayStart, lt: todayEnd } },
+      select: { amount: true, paidMethod: true },
+    }).catch(() => []),
+  ])
 
   let total = 0
   let cash = 0
@@ -39,7 +43,15 @@ export default async function DashboardPage() {
     if (inv.paymentMethod === 'Cash' || inv.paymentMethod === 'Cash COD') cash += amount
     else if (inv.paymentMethod === 'QRIS') qris += amount
     else if (inv.paymentMethod === 'Transfer Bank') bank += amount
-    else if (inv.paymentMethod === 'BON') bon += amount
+    else if (inv.paymentMethod === 'BON' && inv.paidAt === null) bon += amount
+    // settled BON: total already counted above; cash/qris/bank comes from PaymentLog below
+  }
+
+  for (const log of paymentLogs) {
+    const amount = Number(log.amount)
+    if (log.paidMethod === 'Cash' || log.paidMethod === 'Cash COD') cash += amount
+    else if (log.paidMethod === 'QRIS') qris += amount
+    else if (log.paidMethod === 'Transfer Bank') bank += amount
   }
 
   const cards = [

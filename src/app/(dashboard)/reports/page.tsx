@@ -25,9 +25,29 @@ export default async function ReportsPage({ searchParams }: PageProps) {
   }
 
   if (method) {
-    // 'Cash' filter from dashboard deep-links covers both Cash and Cash COD
     if (method === 'Cash') {
-      where.paymentMethod = { in: ['Cash', 'Cash COD'] }
+      where.OR = [
+        { paymentMethod: { in: ['Cash', 'Cash COD'] } },
+        { paymentMethod: 'BON', paidMethod: { in: ['Cash', 'Cash COD'] } },
+      ]
+    } else if (method === 'Cash COD') {
+      where.OR = [
+        { paymentMethod: 'Cash COD' },
+        { paymentMethod: 'BON', paidMethod: 'Cash COD' },
+      ]
+    } else if (method === 'QRIS') {
+      where.OR = [
+        { paymentMethod: 'QRIS' },
+        { paymentMethod: 'BON', paidMethod: 'QRIS' },
+      ]
+    } else if (method === 'Transfer Bank') {
+      where.OR = [
+        { paymentMethod: 'Transfer Bank' },
+        { paymentMethod: 'BON', paidMethod: 'Transfer Bank' },
+      ]
+    } else if (method === 'BON') {
+      where.paymentMethod = 'BON'
+      where.paidAt = null
     } else {
       where.paymentMethod = method
     }
@@ -40,7 +60,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
   const [allForTotals, paginatedRaw, totalCount] = await Promise.all([
     prisma.invoice.findMany({
       where,
-      select: { totalAmount: true, paymentMethod: true },
+      select: { totalAmount: true, paymentMethod: true, paidMethod: true, paidAt: true },
     }),
     prisma.invoice.findMany({
       where,
@@ -56,10 +76,22 @@ export default async function ReportsPage({ searchParams }: PageProps) {
   for (const inv of allForTotals) {
     const amt = Number(inv.totalAmount)
     totals.total += amt
-    if (inv.paymentMethod === 'Cash' || inv.paymentMethod === 'Cash COD') totals.cash += amt
-    else if (inv.paymentMethod === 'QRIS') totals.qris += amt
-    else if (inv.paymentMethod === 'Transfer Bank') totals.bank += amt
-    else if (inv.paymentMethod === 'BON') totals.bon += amt
+    if (inv.paymentMethod === 'BON') {
+      if (inv.paidAt !== null && inv.paidMethod) {
+        // settled BON: count in the method it was paid with
+        if (inv.paidMethod === 'Cash' || inv.paidMethod === 'Cash COD') totals.cash += amt
+        else if (inv.paidMethod === 'QRIS') totals.qris += amt
+        else if (inv.paidMethod === 'Transfer Bank') totals.bank += amt
+      } else {
+        totals.bon += amt
+      }
+    } else if (inv.paymentMethod === 'Cash' || inv.paymentMethod === 'Cash COD') {
+      totals.cash += amt
+    } else if (inv.paymentMethod === 'QRIS') {
+      totals.qris += amt
+    } else if (inv.paymentMethod === 'Transfer Bank') {
+      totals.bank += amt
+    }
   }
 
   const rows: InvoiceRow[] = paginatedRaw.map((inv) => ({
