@@ -162,7 +162,7 @@ export async function GET(request: Request) {
   row++
 
   const summaryRows: [string, number][] = [
-    ['Total Keuntungan',             totals.total],
+    ['Total Pendapatan',             totals.total],
     ['Total Cash (Cash + Cash COD)', totals.cash],
     ['Total QRIS',                   totals.qris],
     ['Total Transfer Bank',          totals.bank],

@@ -56,7 +56,7 @@ export default async function DashboardPage() {
 
   const cards = [
     {
-      label: 'Total Keuntungan (Hari Ini)',
+      label: 'Total Pendapatan (Hari Ini)',
       value: formatRupiah(total),
       icon: Wallet,
       href: '/reports?date=today',

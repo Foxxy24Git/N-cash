@@ -3,7 +3,7 @@ import { formatRupiah } from '@/lib/format'
 import type { ReportTotals } from '@/lib/report-query'
 
 const CARDS = [
-  { key: 'total' as const, label: 'Total Keuntungan', Icon: Wallet,        bg: 'bg-gray-50',   iconCls: 'text-gray-500',   labelCls: 'text-gray-600' },
+  { key: 'total' as const, label: 'Total Pendapatan', Icon: Wallet,        bg: 'bg-gray-50',   iconCls: 'text-gray-500',   labelCls: 'text-gray-600' },
   { key: 'cash'  as const, label: 'Total Cash',       Icon: Banknote,      bg: 'bg-green-50',  iconCls: 'text-green-600',  labelCls: 'text-green-700' },
   { key: 'qris'  as const, label: 'Total QRIS',       Icon: Smartphone,    bg: 'bg-blue-50',   iconCls: 'text-blue-600',   labelCls: 'text-blue-700' },
   { key: 'bank'  as const, label: 'Total Bank',       Icon: Landmark,      bg: 'bg-yellow-50', iconCls: 'text-yellow-600', labelCls: 'text-yellow-700' },
