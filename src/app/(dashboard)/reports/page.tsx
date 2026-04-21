@@ -70,6 +70,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
     totalAmount:   Number(inv.totalAmount),
     paymentMethod: inv.paymentMethod,
     bankName:      inv.bank?.name ?? null,
+    paidAt:        inv.paidAt?.toISOString() ?? null,
   }))
 
   const baseParams = new URLSearchParams()

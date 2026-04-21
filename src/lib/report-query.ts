@@ -51,6 +51,7 @@ export interface InvoiceRow {
   totalAmount: number
   paymentMethod: string
   bankName: string | null
+  paidAt: string | null
 }
 
 export interface ReportTotals {
