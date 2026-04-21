@@ -56,7 +56,7 @@ export async function POST(
     return NextResponse.json({ success: false, error: 'Invoice tidak ditemukan' }, { status: 404 })
   }
 
-  if (invoice.paymentMethod !== 'UNPAID') {
+  if (invoice.paymentMethod !== 'BON') {
     return NextResponse.json(
       { success: false, error: 'Hanya invoice BON (UNPAID) yang bisa dilunasi' },
       { status: 400 }
