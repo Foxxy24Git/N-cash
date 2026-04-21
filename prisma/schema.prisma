@@ -28,6 +28,7 @@ model Bank {
   accountHolder String?
   createdAt     DateTime      @default(now())
   invoices      Invoice[]
+  paidInvoices  Invoice[]     @relation("PaidBank")
 }
 
 model Invoice {
@@ -42,6 +43,11 @@ model Invoice {
   deletedAt     DateTime?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
+  paidAt        DateTime?
+  paidMethod    String?
+  paidBankId    String?
+  paidBank      Bank?         @relation("PaidBank", fields: [paidBankId], references: [id])
+  paymentLogs   PaymentLog[]
 }
 
 model InvoiceItem {
@@ -52,4 +58,16 @@ model InvoiceItem {
   quantity  Decimal
   unitPrice Decimal
   subtotal  Decimal
+}
+
+model PaymentLog {
+  id         String   @id @default(cuid())
+  invoiceId  String
+  invoice    Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  paidAt     DateTime @default(now())
+  paidMethod String
+  paidBankId String?
+  amount     Decimal
+  notes      String?
+  createdAt  DateTime @default(now())
 }
