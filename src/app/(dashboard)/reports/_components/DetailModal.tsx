@@ -5,11 +5,12 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
 import { formatRupiah } from '@/lib/format'
+import LunasiDialog from './LunasiDialog'
 
 interface Item {
   id: string
   itemName: string
-  quantity: string   // Decimal serialized as string by Prisma
+  quantity: string
   unitPrice: string
   subtotal: string
 }
@@ -21,6 +22,9 @@ interface InvoiceDetail {
   paymentMethod: string
   bank: { name: string } | null
   items: Item[]
+  paidAt: string | null
+  paidMethod: string | null
+  paidBank: { name: string } | null
 }
 
 interface Props {
@@ -33,6 +37,7 @@ export default function DetailModal({ invoiceId, open, onClose }: Props) {
   const [data, setData] = useState<InvoiceDetail | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(false)
+  const [lunasiOpen, setLunasiOpen] = useState(false)
 
   useEffect(() => {
     setData(null)
@@ -56,6 +61,21 @@ export default function DetailModal({ invoiceId, open, onClose }: Props) {
       })
     : ''
 
+  const paidAtLabel = data?.paidAt
+    ? new Date(data.paidAt).toLocaleDateString('id-ID', {
+        timeZone: 'Asia/Jakarta',
+        day: '2-digit', month: '2-digit', year: 'numeric',
+      })
+    : null
+
+  const paidMethodLabel = data?.paidMethod === 'CASH' ? 'Cash'
+    : data?.paidMethod === 'CASH_COD' ? 'Cash COD'
+    : data?.paidMethod === 'QRIS' ? 'QRIS'
+    : data?.paidBank ? `Transfer — ${data.paidBank.name}`
+    : 'Transfer Bank'
+
+  const isBon = data?.paymentMethod === 'UNPAID' || data?.paymentMethod === 'BON'
+
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose() }}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -77,6 +97,34 @@ export default function DetailModal({ invoiceId, open, onClose }: Props) {
 
         {!loading && data && (
           <div className="space-y-4">
+            {/* Status BON */}
+            {isBon && (
+              <div className="flex items-center justify-between rounded-lg px-3 py-2.5 border">
+                {data.paidAt ? (
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border bg-green-100 text-green-800 border-green-200">
+                      ✅ LUNAS
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      dibayar {paidAtLabel} via {paidMethodLabel}
+                    </span>
+                  </div>
+                ) : (
+                  <>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border bg-red-100 text-red-800 border-red-200">
+                      ⚠️ BELUM LUNAS
+                    </span>
+                    <button
+                      onClick={() => setLunasiOpen(true)}
+                      className="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      💰 Lunasi
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+
             {/* Header info */}
             <div className="grid grid-cols-2 gap-2 text-sm bg-gray-50 rounded-lg p-3">
               <div>
@@ -137,6 +185,18 @@ export default function DetailModal({ invoiceId, open, onClose }: Props) {
           </div>
         )}
       </DialogContent>
+
+      {data && (
+        <LunasiDialog
+          invoiceId={invoiceId}
+          invoiceDate={data.date}
+          open={lunasiOpen}
+          onClose={() => {
+            setLunasiOpen(false)
+            onClose()
+          }}
+        />
+      )}
     </Dialog>
   )
 }
