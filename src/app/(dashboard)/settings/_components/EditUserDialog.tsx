@@ -47,6 +47,10 @@ export default function EditUserDialog({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (fullName.trim().length < 3 || fullName.trim().length > 100) {
+      toast.error('Nama lengkap harus 3-100 karakter')
+      return
+    }
     setLoading(true)
     try {
       const res = await fetch(`/api/users/${user.id}`, {
