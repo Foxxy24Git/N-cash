@@ -64,7 +64,10 @@ export default async function ReportsPage({ searchParams }: PageProps) {
     }),
     prisma.invoice.findMany({
       where,
-      include: { bank: { select: { name: true } } },
+      include: {
+        bank: { select: { name: true } },
+        createdBy: { select: { id: true, fullName: true, username: true } },
+      },
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
@@ -103,6 +106,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
     paymentMethod: inv.paymentMethod,
     bankName:      inv.bank?.name ?? null,
     paidAt:        inv.paidAt?.toISOString() ?? null,
+    createdByName: inv.createdBy?.fullName || (inv.createdBy?.username ? `@${inv.createdBy.username}` : null),
   }))
 
   const baseParams = new URLSearchParams()

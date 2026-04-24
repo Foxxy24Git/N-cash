@@ -16,6 +16,7 @@ export async function GET(
     include: {
       items: true,
       bank: { select: { name: true } },
+      createdBy: { select: { fullName: true, username: true } },
     },
   })
 

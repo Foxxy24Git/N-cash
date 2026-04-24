@@ -38,13 +38,14 @@ export default function InvoiceTable({ rows, totalCount, page, prevUrl, nextUrl 
               <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Tanggal</TableHead>
               <TableHead className="font-semibold text-gray-700 text-right whitespace-nowrap">Total Belanja</TableHead>
               <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Status</TableHead>
+              <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Dibuat Oleh</TableHead>
               <TableHead className="font-semibold text-gray-700 text-center whitespace-nowrap">Aksi</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-14 text-gray-400 text-sm">
+                <TableCell colSpan={7} className="text-center py-14 text-gray-400 text-sm">
                   Tidak ada transaksi ditemukan untuk filter ini
                 </TableCell>
               </TableRow>
@@ -85,6 +86,9 @@ export default function InvoiceTable({ rows, totalCount, page, prevUrl, nextUrl 
                         </span>
                       )
                     })()}
+                  </TableCell>
+                  <TableCell className="text-gray-500 text-sm whitespace-nowrap">
+                    {row.createdByName ?? <span className="text-gray-300">—</span>}
                   </TableCell>
                   <TableCell className="text-center">
                     <ActionButtons invoiceId={row.id} invoiceNumber={row.invoiceNumber} />

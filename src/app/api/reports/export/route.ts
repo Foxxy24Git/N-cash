@@ -32,7 +32,11 @@ export async function GET(request: Request) {
   const [invoices, company] = await Promise.all([
     prisma.invoice.findMany({
       where,
-      include: { items: true, bank: { select: { name: true } } },
+      include: {
+        items: true,
+        bank: { select: { name: true } },
+        createdBy: { select: { fullName: true, username: true } },
+      },
       orderBy: { date: 'asc' },
     }),
     prisma.companyProfile.findFirst(),
@@ -60,7 +64,7 @@ export async function GET(request: Request) {
   const wb = new ExcelJS.Workbook()
   const ws = wb.addWorksheet('Laporan N-Cash')
 
-  const COLS = 8
+  const COLS = 9
   ws.columns = [
     { width: 18 }, // A No Faktur
     { width: 14 }, // B Tanggal
@@ -70,6 +74,7 @@ export async function GET(request: Request) {
     { width: 16 }, // F Harga Satuan
     { width: 16 }, // G Subtotal
     { width: 20 }, // H Metode
+    { width: 20 }, // I Dibuat Oleh
   ]
 
   type Fill    = ExcelJS.Fill
@@ -205,7 +210,7 @@ export async function GET(request: Request) {
   row++
 
   // Column headers
-  const colHeaders = ['No Faktur', 'Tanggal', 'Jam', 'Nama Barang', 'QTY', 'Harga Satuan', 'Subtotal', 'Metode Pembayaran']
+  const colHeaders = ['No Faktur', 'Tanggal', 'Jam', 'Nama Barang', 'QTY', 'Harga Satuan', 'Subtotal', 'Metode Pembayaran', 'Dibuat Oleh']
   colHeaders.forEach((h, i) => {
     const c = ws.getCell(row, i + 1)
     c.value     = h
@@ -234,6 +239,7 @@ export async function GET(request: Request) {
     const invTime    = fmtTimeWIB(inv.createdAt)
     const methodLabel = inv.paymentMethod + (inv.bank ? ` — ${inv.bank.name}` : '')
     const mFill      = methodFill(inv.paymentMethod)
+    const createdByLabel = inv.createdBy?.fullName || (inv.createdBy?.username ? `@${inv.createdBy.username}` : '')
     const firstRow   = row
 
     inv.items.forEach((item) => {
@@ -276,9 +282,11 @@ export async function GET(request: Request) {
     hC.value = methodLabel
     hC.fill  = mFill
 
-    // Merge A B C H vertically if >1 item
+    ws.getCell(firstRow, 9).value = createdByLabel
+
+    // Merge A B C H I vertically if >1 item
     if (inv.items.length > 1) {
-      ;([1, 2, 3, 8] as const).forEach(col => {
+      ;([1, 2, 3, 8, 9] as const).forEach(col => {
         ws.mergeCells(firstRow, col, lastRow, col)
         const c = ws.getCell(firstRow, col)
         c.alignment = { vertical: 'middle', wrapText: false }
@@ -286,7 +294,7 @@ export async function GET(request: Request) {
         if (col === 8) c.fill = mFill
       })
     } else {
-      ;([1, 2, 3, 8] as const).forEach(col => {
+      ;([1, 2, 3, 8, 9] as const).forEach(col => {
         const c = ws.getCell(firstRow, col)
         c.alignment = { vertical: 'middle' }
         c.border    = thin
@@ -318,6 +326,10 @@ export async function GET(request: Request) {
     const stH = ws.getCell(row, 8)
     stH.fill   = grayFill
     stH.border = thin
+
+    const stI = ws.getCell(row, 9)
+    stI.fill   = grayFill
+    stI.border = thin
 
     row++
   }

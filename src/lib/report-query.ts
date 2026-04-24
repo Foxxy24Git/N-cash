@@ -52,6 +52,7 @@ export interface InvoiceRow {
   paymentMethod: string
   bankName: string | null
   paidAt: string | null
+  createdByName: string | null
 }
 
 export interface ReportTotals {

@@ -18,6 +18,7 @@ interface Item {
 interface InvoiceDetail {
   invoiceNumber: string
   date: string
+  createdAt: string
   totalAmount: string
   paymentMethod: string
   bank: { name: string } | null
@@ -25,6 +26,7 @@ interface InvoiceDetail {
   paidAt: string | null
   paidMethod: string | null
   paidBank: { name: string } | null
+  createdBy: { fullName: string | null; username: string } | null
 }
 
 interface Props {
@@ -143,6 +145,28 @@ export default function DetailModal({ invoiceId, open, onClose }: Props) {
                 <div>
                   <span className="text-gray-500">Bank</span>
                   <p className="font-medium text-gray-900">{data.bank.name}</p>
+                </div>
+              )}
+              {data.createdBy && (
+                <div className="col-span-2">
+                  <span className="text-gray-500">Dibuat oleh</span>
+                  <p className="font-medium text-gray-900">
+                    {data.createdBy.fullName || `@${data.createdBy.username}`}
+                    {data.createdAt && (
+                      <span className="font-normal text-gray-500">
+                        {' '}pada{' '}
+                        {new Date(data.createdAt).toLocaleDateString('id-ID', {
+                          timeZone: 'Asia/Jakarta',
+                          day: '2-digit', month: '2-digit', year: 'numeric',
+                        })}
+                        {' '}
+                        {new Date(data.createdAt).toLocaleTimeString('id-ID', {
+                          timeZone: 'Asia/Jakarta',
+                          hour: '2-digit', minute: '2-digit', hour12: false,
+                        })}
+                      </span>
+                    )}
+                  </p>
                 </div>
               )}
             </div>
