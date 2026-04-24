@@ -46,7 +46,7 @@ export default function ResetPasswordDialog({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (newPassword.length < 8) {
+    if (newPassword.trim().length < 8) {
       toast.error('Password minimal 8 karakter')
       return
     }
