@@ -48,11 +48,18 @@ export default function UsersTab({ currentUserId }: { currentUserId: string }) {
   const [loadingIds, setLoadingIds] = useState<Set<string>>(new Set())
 
   const fetchUsers = useCallback(async () => {
-    const res = await fetch('/api/users')
-    if (res.ok) {
+    try {
+      const res = await fetch('/api/users')
+      if (!res.ok) {
+        toast.error('Gagal memuat daftar user')
+        return
+      }
       setUsers(await res.json())
+    } catch {
+      toast.error('Gagal memuat daftar user')
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }, [])
 
   useEffect(() => {

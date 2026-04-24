@@ -46,7 +46,11 @@ export default function ResetPasswordDialog({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (newPassword.trim().length < 8) {
+    if (!newPassword.trim()) {
+      toast.error('Password tidak boleh hanya spasi')
+      return
+    }
+    if (newPassword.length < 8) {
       toast.error('Password minimal 8 karakter')
       return
     }
