@@ -26,7 +26,12 @@ export async function PATCH(
     return NextResponse.json({ error: 'User tidak ditemukan' }, { status: 404 })
   }
 
-  const body = await req.json()
+  let body: unknown
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Body tidak valid' }, { status: 400 })
+  }
   const result = updateUserSchema.safeParse(body)
   if (!result.success) {
     return NextResponse.json(
@@ -48,6 +53,10 @@ export async function PATCH(
   if (fullName !== undefined) data.fullName = fullName
   if (isActive !== undefined) data.isActive = isActive
   if (newPassword !== undefined) data.password = await bcrypt.hash(newPassword, 10)
+
+  if (Object.keys(data).length === 0) {
+    return NextResponse.json({ error: 'Tidak ada data yang diperbarui' }, { status: 400 })
+  }
 
   try {
     const updated = await prisma.user.update({
