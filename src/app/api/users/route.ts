@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
+import { Prisma } from '@prisma/client'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { createUserSchema } from '@/lib/schemas/user'
@@ -44,14 +45,6 @@ export async function POST(req: Request) {
   const { username, fullName, password } = result.data
 
   try {
-    const existing = await prisma.user.findUnique({ where: { username } })
-    if (existing) {
-      return NextResponse.json(
-        { error: 'Username sudah digunakan' },
-        { status: 400 }
-      )
-    }
-
     const hashedPassword = await bcrypt.hash(password, 10)
     const user = await prisma.user.create({
       data: { username, fullName, password: hashedPassword, isActive: true },
@@ -60,6 +53,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json(user, { status: 201 })
   } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+      return NextResponse.json({ error: 'Username sudah digunakan' }, { status: 400 })
+    }
     console.error('[POST /api/users]', e)
     return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 })
   }

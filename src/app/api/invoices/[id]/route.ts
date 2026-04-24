@@ -21,7 +21,7 @@ export async function GET(
   })
 
   if (!invoice) {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    return NextResponse.json({ error: 'Invoice tidak ditemukan' }, { status: 404 })
   }
 
   return NextResponse.json(invoice)
