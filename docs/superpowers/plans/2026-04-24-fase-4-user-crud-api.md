@@ -155,7 +155,7 @@ export async function POST(req: Request) {
   const result = createUserSchema.safeParse(body)
   if (!result.success) {
     return NextResponse.json(
-      { error: result.error.errors[0].message },
+      { error: result.error.issues[0].message },
       { status: 400 }
     )
   }
@@ -269,7 +269,7 @@ export async function PATCH(
   const result = updateUserSchema.safeParse(body)
   if (!result.success) {
     return NextResponse.json(
-      { error: result.error.errors[0].message },
+      { error: result.error.issues[0].message },
       { status: 400 }
     )
   }
