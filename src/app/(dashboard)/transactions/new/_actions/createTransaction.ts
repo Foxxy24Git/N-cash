@@ -37,7 +37,7 @@ export async function createTransaction(payload: unknown): Promise<Result> {
 
   const parsed = schema.safeParse(payload)
   if (!parsed.success) {
-    return { success: false, error: parsed.error.errors[0].message }
+    return { success: false, error: parsed.error.issues[0].message }
   }
 
   const { invoiceNumber, date, paymentMethod, bankId, items } = parsed.data
