@@ -241,7 +241,7 @@ export default function UsersTab({ currentUserId }: { currentUserId: string }) {
       {selectedUser && (
         <EditUserDialog
           open={dialogOpen === 'edit'}
-          onOpenChange={v => { if (!v) setDialogOpen(null) }}
+          onOpenChange={v => { if (!v) { setDialogOpen(null); setSelectedUser(null) } }}
           user={selectedUser}
           currentUserId={currentUserId}
           onSuccess={fetchUsers}
@@ -252,7 +252,7 @@ export default function UsersTab({ currentUserId }: { currentUserId: string }) {
       {selectedUser && (
         <ResetPasswordDialog
           open={dialogOpen === 'reset'}
-          onOpenChange={v => { if (!v) setDialogOpen(null) }}
+          onOpenChange={v => { if (!v) { setDialogOpen(null); setSelectedUser(null) } }}
           user={selectedUser}
           onSuccess={fetchUsers}
         />
