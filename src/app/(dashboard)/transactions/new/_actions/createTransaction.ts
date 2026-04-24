@@ -3,6 +3,7 @@
 import { Prisma } from '@prisma/client'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
+import { auth } from '@/auth'
 
 const PAYMENT_METHODS = ['Cash', 'Cash COD', 'QRIS', 'Transfer Bank', 'BON'] as const
 
@@ -29,6 +30,11 @@ const schema = z
 type Result = { success: true } | { success: false; error: string }
 
 export async function createTransaction(payload: unknown): Promise<Result> {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return { success: false, error: 'Unauthorized' }
+  }
+
   const parsed = schema.safeParse(payload)
   if (!parsed.success) {
     return { success: false, error: parsed.error.errors[0].message }
@@ -46,6 +52,7 @@ export async function createTransaction(payload: unknown): Promise<Result> {
         totalAmount,
         paymentMethod,
         bankId: paymentMethod === 'Transfer Bank' ? bankId : null,
+        createdById: session.user.id,
         items: {
           create: items.map((item) => ({
             itemName: item.itemName,
