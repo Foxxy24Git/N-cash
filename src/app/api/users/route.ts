@@ -43,19 +43,24 @@ export async function POST(req: Request) {
 
   const { username, fullName, password } = result.data
 
-  const existing = await prisma.user.findUnique({ where: { username } })
-  if (existing) {
-    return NextResponse.json(
-      { error: 'Username sudah digunakan' },
-      { status: 400 }
-    )
+  try {
+    const existing = await prisma.user.findUnique({ where: { username } })
+    if (existing) {
+      return NextResponse.json(
+        { error: 'Username sudah digunakan' },
+        { status: 400 }
+      )
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10)
+    const user = await prisma.user.create({
+      data: { username, fullName, password: hashedPassword, isActive: true },
+      select: USER_SELECT,
+    })
+
+    return NextResponse.json(user, { status: 201 })
+  } catch (e) {
+    console.error('[POST /api/users]', e)
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 })
   }
-
-  const hashedPassword = await bcrypt.hash(password, 10)
-  const user = await prisma.user.create({
-    data: { username, fullName, password: hashedPassword, isActive: true },
-    select: USER_SELECT,
-  })
-
-  return NextResponse.json(user, { status: 201 })
 }
