@@ -1,6 +1,6 @@
 'use client'
 
-import { useTransition } from 'react'
+import { useRef, useEffect, useTransition } from 'react'
 import { signOut } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,6 +9,13 @@ import { changePassword } from '../_actions/passwordActions'
 
 export default function PasswordTab() {
   const [isPending, startTransition] = useTransition()
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [])
 
   function handleSubmit(formData: FormData) {
     startTransition(async () => {
@@ -18,7 +25,7 @@ export default function PasswordTab() {
         return
       }
       toast.success('Password berhasil diubah. Logout dalam 1.5 detik...')
-      setTimeout(() => signOut({ callbackUrl: '/login' }), 1500)
+      timerRef.current = setTimeout(() => signOut({ callbackUrl: '/login' }), 1500)
     })
   }
 
