@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, Users } from 'lucide-react'
+import { EmptyState } from '@/components/ui/empty-state'
 import { format } from 'date-fns'
 import { id as localeId } from 'date-fns/locale'
 import { Button } from '@/components/ui/button'
@@ -137,9 +138,11 @@ export default function UsersTab({ currentUserId }: { currentUserId: string }) {
       </div>
 
       {users.length === 0 ? (
-        <div className="text-center py-12 text-gray-400 text-sm">
-          Belum ada user terdaftar. Klik Tambah User.
-        </div>
+        <EmptyState
+          icon={Users}
+          title="Belum ada pengguna lain"
+          subtitle="Tambah pengguna untuk akses multi-user."
+        />
       ) : (
         <Table>
           <TableHeader>

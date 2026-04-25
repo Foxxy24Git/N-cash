@@ -1,4 +1,5 @@
-import { Plus } from 'lucide-react'
+import { Plus, Landmark } from 'lucide-react'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -34,9 +35,11 @@ export default function BankTab({ banks }: { banks: Bank[] }) {
       </div>
 
       {banks.length === 0 ? (
-        <div className="text-center py-12 text-gray-400 text-sm">
-          Belum ada bank terdaftar. Tambah bank untuk digunakan pada transaksi Transfer Bank.
-        </div>
+        <EmptyState
+          icon={Landmark}
+          title="Belum ada bank"
+          subtitle="Tambah bank untuk digunakan pada transaksi Transfer Bank."
+        />
       ) : (
         <Table>
           <TableHeader>

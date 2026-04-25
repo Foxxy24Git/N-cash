@@ -1,6 +1,8 @@
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
+import { FileSearch } from 'lucide-react'
+import { EmptyState } from '@/components/ui/empty-state'
 import { formatRupiah } from '@/lib/format'
 import { PAGE_SIZE } from '@/lib/report-query'
 import type { InvoiceRow } from '@/lib/report-query'
@@ -45,8 +47,12 @@ export default function InvoiceTable({ rows, totalCount, page, prevUrl, nextUrl 
           <TableBody>
             {rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-14 text-gray-400 text-sm">
-                  Tidak ada transaksi ditemukan untuk filter ini
+                <TableCell colSpan={7} className="p-0">
+                  <EmptyState
+                    icon={FileSearch}
+                    title="Tidak ada transaksi"
+                    subtitle="Coba ubah filter atau rentang tanggal."
+                  />
                 </TableCell>
               </TableRow>
             ) : (
