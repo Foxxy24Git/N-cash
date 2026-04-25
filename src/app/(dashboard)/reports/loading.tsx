@@ -5,7 +5,7 @@ export default function ReportsLoading() {
       <div className="h-7 w-44 bg-gray-200 rounded-md animate-pulse" />
 
       {/* filter bar */}
-      <div className="h-16 bg-gray-100 rounded-xl animate-pulse" />
+      <div className="h-32 bg-gray-100 rounded-xl animate-pulse" />
 
       {/* export button */}
       <div className="flex justify-end">
