@@ -46,7 +46,7 @@ export default function InvoiceTable({ rows, totalCount, page, prevUrl, nextUrl 
           </TableHeader>
           <TableBody>
             {rows.length === 0 ? (
-              <TableRow>
+              <TableRow className="hover:bg-transparent">
                 <TableCell colSpan={7} className="p-0">
                   <EmptyState
                     icon={FileSearch}
