@@ -1,5 +1,5 @@
 import type { DefaultSession } from 'next-auth'
-import type { JWT } from 'next-auth/jwt'
+import type { JWT } from 'next-auth/jwt' // eslint-disable-line @typescript-eslint/no-unused-vars
 
 declare module 'next-auth' {
   interface Session {
