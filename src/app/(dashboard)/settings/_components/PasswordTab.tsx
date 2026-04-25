@@ -1,6 +1,7 @@
 'use client'
 
 import { useTransition } from 'react'
+import { signOut } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
@@ -12,9 +13,12 @@ export default function PasswordTab() {
   function handleSubmit(formData: FormData) {
     startTransition(async () => {
       const result = await changePassword(formData)
-      if (result && 'error' in result) {
+      if ('error' in result) {
         toast.error(result.error)
+        return
       }
+      toast.success('Password berhasil diubah. Logout dalam 1.5 detik...')
+      setTimeout(() => signOut({ callbackUrl: '/login' }), 1500)
     })
   }
 
