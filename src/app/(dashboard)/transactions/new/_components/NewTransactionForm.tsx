@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { format } from 'date-fns'
 import { Plus, Trash2, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -84,6 +84,10 @@ interface Item {
   unitPrice: number
   subtotal: number
   isOverridden: boolean
+  productId: string | null
+  stock: number | null
+  unit: string | null
+  minStock: number | null
 }
 
 function createItem(): Item {
@@ -94,12 +98,168 @@ function createItem(): Item {
     unitPrice: 0,
     subtotal: 0,
     isOverridden: false,
+    productId: null,
+    stock: null,
+    unit: null,
+    minStock: null,
   }
 }
 
 function autoSubtotal(qty: string, unitPrice: number): number {
   const q = parseQty(qty)
   return q > 0 && unitPrice > 0 ? Math.round(q * unitPrice) : 0
+}
+
+// ─── Product Autocomplete ─────────────────────────────────────────────────────
+
+interface ProductResult {
+  id: string
+  name: string
+  unit: string
+  sellingPrice: number
+  stock: number
+  minStock: number
+}
+
+function ProductAutocomplete({
+  value,
+  onChange,
+  onSelect,
+}: {
+  value: string
+  onChange: (text: string) => void
+  onSelect: (product: ProductResult) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [results, setResults] = useState<ProductResult[]>([])
+  const [highlighted, setHighlighted] = useState(-1)
+  const [loading, setLoading] = useState(false)
+  const wrapperRef = useRef<HTMLDivElement>(null)
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([])
+
+  // Click outside to close
+  useEffect(() => {
+    function handleMouseDown(e: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setOpen(false)
+        setHighlighted(-1)
+      }
+    }
+    document.addEventListener('mousedown', handleMouseDown)
+    return () => document.removeEventListener('mousedown', handleMouseDown)
+  }, [])
+
+  // Scroll highlighted item into view
+  useEffect(() => {
+    if (highlighted >= 0 && itemRefs.current[highlighted]) {
+      itemRefs.current[highlighted]?.scrollIntoView({ block: 'nearest' })
+    }
+  }, [highlighted])
+
+  // Debounced fetch
+  useEffect(() => {
+    if (value.length < 2) {
+      setOpen(false)
+      setResults([])
+      return
+    }
+
+    const controller = new AbortController()
+    const timer = setTimeout(async () => {
+      setLoading(true)
+      try {
+        const res = await fetch(
+          `/api/stock/search?q=${encodeURIComponent(value)}&limit=10`,
+          { signal: controller.signal }
+        )
+        const data: ProductResult[] = await res.json()
+        setResults(data)
+        setHighlighted(-1)
+        setOpen(true)
+      } catch (e) {
+        if ((e as Error).name !== 'AbortError') setResults([])
+      } finally {
+        setLoading(false)
+      }
+    }, 300)
+
+    return () => { clearTimeout(timer); controller.abort() }
+  }, [value])
+
+  const handleSelect = (product: ProductResult) => {
+    onChange(product.name)
+    onSelect(product)
+    setOpen(false)
+    setResults([])
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!open) return
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setHighlighted((prev) => Math.min(prev + 1, results.length - 1))
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setHighlighted((prev) => Math.max(prev - 1, 0))
+    } else if (e.key === 'Enter') {
+      if (highlighted >= 0 && highlighted < results.length) {
+        e.preventDefault()
+        handleSelect(results[highlighted])
+      }
+    } else if (e.key === 'Escape') {
+      setOpen(false)
+      setHighlighted(-1)
+    }
+  }
+
+  const stockColor = (product: ProductResult) => {
+    if (product.stock === 0) return 'text-red-500'
+    if (product.stock <= product.minStock) return 'text-yellow-500'
+    return 'text-green-600'
+  }
+
+  return (
+    <div ref={wrapperRef} className="relative">
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder="Nama barang..."
+        className="w-full px-2.5 py-2 text-sm border border-gray-300 rounded-lg
+          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      />
+      {open && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+          {loading ? (
+            <p className="px-3 py-2 text-sm text-gray-400 italic">Mencari...</p>
+          ) : results.length > 0 ? (
+            results.map((product, idx) => (
+              <div
+                key={product.id}
+                ref={(el) => { itemRefs.current[idx] = el }}
+                onMouseDown={() => handleSelect(product)}
+                className={cn(
+                  'px-3 py-2 text-sm cursor-pointer hover:bg-gray-50',
+                  idx === highlighted && 'bg-blue-50'
+                )}
+              >
+                <span className="font-medium">{product.name}</span>
+                {' — '}
+                <span className={cn('text-xs', stockColor(product))}>
+                  Stok: {product.stock} {product.unit}
+                </span>
+              </div>
+            ))
+          ) : (
+            <p className="px-3 py-2 text-sm text-gray-400 italic">
+              Tidak ditemukan — lanjut ketik manual
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  )
 }
 
 // ─── Item Row ─────────────────────────────────────────────────────────────────
@@ -139,17 +299,46 @@ function ItemRow({
     })
   }
 
+  const handleProductSelect = (product: ProductResult) => {
+    onUpdate(item.id, {
+      itemName: product.name,
+      productId: product.id,
+      unitPrice: product.sellingPrice,
+      stock: product.stock,
+      unit: product.unit,
+      minStock: product.minStock,
+      subtotal: !item.isOverridden
+        ? autoSubtotal(item.qty, product.sellingPrice)
+        : item.subtotal,
+    })
+  }
+
+  const handleProductTextChange = (text: string) => {
+    onUpdate(item.id, { itemName: text, productId: null, stock: null, unit: null, minStock: null })
+  }
+
+  const stockBadgeColor =
+    item.stock === 0
+      ? 'bg-red-100 text-red-600'
+      : item.stock !== null && item.minStock !== null && item.stock <= item.minStock
+      ? 'bg-yellow-100 text-yellow-600'
+      : 'bg-green-100 text-green-600'
+
   return (
     <tr className="border-t border-gray-100 hover:bg-gray-50/50">
       <td className="px-2 py-2">
-        <input
-          type="text"
+        <ProductAutocomplete
           value={item.itemName}
-          onChange={(e) => onUpdate(item.id, { itemName: e.target.value })}
-          placeholder="Nama barang..."
-          className="w-full px-2.5 py-2 text-sm border border-gray-300 rounded-lg
-            focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          onChange={handleProductTextChange}
+          onSelect={handleProductSelect}
         />
+        {item.unit !== null && item.stock !== null && (
+          <div className="flex items-center gap-1 mt-1">
+            <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full', stockBadgeColor)}>
+              📦 {item.stock} {item.unit}
+            </span>
+          </div>
+        )}
       </td>
 
       <td className="px-2 py-2">
@@ -162,6 +351,11 @@ function ItemRow({
           className="w-full px-2 py-2 text-sm text-center border border-gray-300 rounded-lg
             focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
+        {item.stock !== null && parseQty(item.qty) > item.stock && (
+          <p className="text-xs text-yellow-600 mt-0.5">
+            ⚠️ Stok tersedia: {item.stock} {item.unit}
+          </p>
+        )}
       </td>
 
       <td className="px-2 py-2">
@@ -261,6 +455,16 @@ export default function NewTransactionForm() {
     setIsSubmitting(true)
 
     try {
+      console.log('[N-Cash] items saat submit:', items.map(i => ({
+        itemName: i.itemName,
+        productId: i.productId,
+        qty: parseQty(i.qty),
+        unitPrice: i.unitPrice,
+        subtotal: i.subtotal,
+        stock: i.stock,
+        unit: i.unit,
+      })))
+
       const result = await createTransaction({
         invoiceNumber,
         date,
@@ -268,6 +472,7 @@ export default function NewTransactionForm() {
         bankId: selectedBankId || undefined,
         items: items.map((item) => ({
           itemName: item.itemName,
+          productId: item.productId ?? null,
           qty: parseQty(item.qty),
           unitPrice: item.unitPrice,
           subtotal: item.subtotal,
@@ -276,6 +481,9 @@ export default function NewTransactionForm() {
 
       if (result.success) {
         toast.success('Transaksi berhasil disimpan')
+        if (result.warning) {
+          toast.warning(result.warning)
+        }
         resetForm()
       } else {
         toast.error(result.error)
