@@ -4,6 +4,7 @@ import StockFilterBar, { type StatusFilter } from './_components/StockFilterBar'
 import StockTable, { type ProductRow } from './_components/StockTable'
 import { ProductFormDialog } from './_components/ProductFormDialog'
 import { ImportDialog } from './_components/ImportDialog'
+import { ExportStockButton } from './_components/ExportStockButton'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Stok — N-Cash' }
@@ -100,12 +101,7 @@ export default async function StockPage({ searchParams }: PageProps) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold text-gray-900">Manajemen Stok</h1>
         <div className="flex items-center gap-2">
-          <button
-            disabled
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-400 cursor-not-allowed"
-          >
-            📤 Export
-          </button>
+          <ExportStockButton />
           <ImportDialog />
           <ProductFormDialog mode="add" />
         </div>
