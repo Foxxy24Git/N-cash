@@ -2,6 +2,7 @@
 
 import { ProductFormDialog } from './ProductFormDialog'
 import { DeleteProductDialog } from './DeleteProductDialog'
+import { StockAdjustmentDialog } from './StockAdjustmentDialog'
 import type { ProductRow } from './StockTable'
 
 interface Props {
@@ -11,12 +12,12 @@ interface Props {
 export function StockCrudButtons({ row }: Props) {
   return (
     <div className="flex items-center justify-center gap-1">
-      <button
-        disabled
-        className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-400 cursor-not-allowed"
-      >
-        ✏️ Stok
-      </button>
+      <StockAdjustmentDialog
+        productId={row.id}
+        productName={row.name}
+        currentStock={row.stock}
+        unit={row.unit}
+      />
       <ProductFormDialog mode="edit" product={row} />
       <DeleteProductDialog id={row.id} name={row.name} />
     </div>
