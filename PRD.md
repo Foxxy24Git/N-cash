@@ -1,8 +1,8 @@
-# 📊 PRD - N-Cash (Aplikasi Laporan Keuangan Toko Bangunan)
+# 📊 PRD - N-Cash (Aplikasi Laporan Keuangan & Stok Toko Bangunan)
 
 **Product Requirements Document**
-**Version:** 1.0
-**Tanggal:** 19 April 2026
+**Version:** 3.0 (Revisi — Stok Disederhanakan + Keuntungan Bersih)
+**Tanggal:** Mei 2026
 **Owner:** [Nama Pemilik Toko]
 
 ---
@@ -10,264 +10,258 @@
 ## 1. 🎯 Overview Produk
 
 ### 1.1 Nama Aplikasi
-**N-Cash** — Aplikasi Rekap Keuangan Toko Bangunan
+**N-Cash** — Aplikasi Rekap Keuangan & Stok Toko Bangunan
 
 ### 1.2 Tujuan
-N-Cash adalah aplikasi internal untuk merekap seluruh alur keuangan toko bangunan. Aplikasi ini membantu pemilik toko untuk:
-- Mencatat setiap transaksi penjualan (per nota/faktur)
-- Melacak metode pembayaran (Cash, QRIS, Transfer Bank, Belum Bayar/BON)
-- Melihat ringkasan keuangan harian di dashboard
-- Mengunduh laporan profesional dalam format Excel
+N-Cash adalah aplikasi internal untuk merekap keuangan dan stok toko bangunan:
+- Mencatat transaksi penjualan per nota/faktur
+- Melacak metode pembayaran (Cash, QRIS, Transfer Bank, BON)
+- Mengelola stok barang (1.500+ item) — **input manual langsung di aplikasi** atau import massal via Excel
+- Stok otomatis berkurang saat transaksi disimpan
+- **Menampilkan keuntungan bersih (harga jual − harga beli) di dashboard & laporan**
+- Notifikasi stok menipis / habis
+- Download laporan keuangan profesional format Excel
 
 ### 1.3 Target Pengguna
-- Pemilik toko bangunan (single user, internal use)
-- Kasir/admin toko (opsional — future development)
+Pemilik toko bangunan (single user, internal use)
 
 ### 1.4 Platform
-- **Tipe:** Web Application (bisa dibuka di browser desktop & mobile)
-- **Deployment:** Self-hosted di Proxmox lab pribadi
-- **Akses:** Via LAN/local network atau domain internal
+Web Application — Self-hosted di Proxmox, akses via LAN / domain internal
 
 ---
 
-## 2. 🛠️ Rekomendasi Tech Stack
+## 2. 🛠️ Tech Stack
 
-Karena Anda masih di level beginner dan ingin vibe code dengan Claude Code, saya rekomendasikan stack yang **modern, simple, dan mudah dideploy di Proxmox**:
-
-| Layer | Teknologi | Alasan |
-|-------|-----------|--------|
-| **Frontend** | Next.js 14 (App Router) + TypeScript | All-in-one, mudah, banyak contoh |
-| **UI Library** | Tailwind CSS + shadcn/ui | Clean, profesional, cepat |
-| **Backend** | Next.js API Routes | Tidak perlu server terpisah |
-| **Database** | SQLite (via Prisma ORM) | Ringan, 1 file, cocok untuk single-user. Bisa upgrade ke PostgreSQL nanti |
-| **Excel Export** | `exceljs` library | Support styling profesional (logo, header, border) |
-| **Auth** | NextAuth.js (Credentials Provider) | Untuk login & ganti password |
-| **State Management** | Zustand atau React Context | Simple |
-| **Deployment** | Docker Container di Proxmox | Portable, mudah backup |
-
-> **Catatan:** Jika Anda lebih nyaman dengan stack lain (contoh: Laravel, Python Flask), bisa di-adjust. Tapi stack di atas adalah yang paling "Claude Code friendly".
+| Layer | Teknologi |
+|-------|-----------|
+| Frontend | Next.js 14 (App Router) + TypeScript |
+| UI | Tailwind CSS + shadcn/ui |
+| Backend | Next.js Server Actions / API Routes |
+| Database | SQLite via Prisma ORM |
+| Excel Export | `exceljs` |
+| Excel Import | `xlsx` (SheetJS) |
+| Auth | NextAuth.js Credentials Provider |
+| State | Zustand atau useState |
+| Deploy | Docker di Proxmox |
 
 ---
 
 ## 3. 📱 Fitur Utama & Rule Detail
 
+---
+
 ### 3.1 MENU A — DASHBOARD
 
-**Fungsi:** Menampilkan ringkasan keuangan **HARI INI** (reset setiap hari otomatis pada jam 00:00 WIB).
+**Fungsi:** Ringkasan keuangan **HARI INI** — reset otomatis setiap jam 00:00 WIB.
 
-#### 3.1.1 Kartu Informasi (Cards)
-Dashboard menampilkan 5 kartu utama:
+#### 3.1.1 Kartu Dashboard
 
-| No | Kartu | Deskripsi | Warna Card |
-|----|-------|-----------|------------|
-| 1 | 💰 **Total Keuntungan (Hari Ini)** | Jumlah total omzet semua transaksi hari ini | Abu-abu/Netral |
-| 2 | 💵 **Total Pembayaran Cash** | Jumlah transaksi hari ini dengan metode Cash (termasuk COD) | Hijau |
-| 3 | 📱 **Total Pembayaran QRIS** | Jumlah transaksi hari ini dengan metode QRIS | Biru |
-| 4 | 🏦 **Total Transfer via Bank** | Jumlah transaksi hari ini dengan metode Transfer Bank | Kuning |
-| 5 | ⚠️ **Total Belum Bayar (BON)** | Jumlah transaksi hari ini yang statusnya belum dibayar | Merah |
+| No | Kartu | Isi | Warna |
+|----|-------|-----|-------|
+| 1 | 💰 **Total Omzet** | Total seluruh transaksi hari ini (semua metode) | Abu/Netral |
+| 2 | 🟢 **Keuntungan Bersih** | Selisih harga jual − harga beli untuk item yang terhubung ke stok | Hijau Tua |
+| 3 | 💵 **Total Cash** | Transaksi hari ini Cash + Cash COD | Hijau |
+| 4 | 📱 **Total QRIS** | Transaksi hari ini QRIS | Biru |
+| 5 | 🏦 **Total Transfer Bank** | Transaksi hari ini Transfer Bank | Kuning |
+| 6 | ⚠️ **Total BON** | Transaksi hari ini belum dibayar | Merah |
+| 7 | 📦 **Stok Menipis** | Jumlah item stok ≤ minStock atau = 0 | Oranye |
 
-#### 3.1.2 Rule Dashboard
-- **RULE-A1:** Setiap kartu bersifat **clickable**. Saat diklik, redirect ke **Menu Report (History Transaksi)** dengan filter otomatis sesuai kartu:
-  - Klik "Total Keuntungan" → tampilkan SEMUA transaksi hari ini
-  - Klik "Cash" → tampilkan transaksi hari ini dengan status Cash
-  - Klik "QRIS" → tampilkan transaksi hari ini dengan status QRIS
-  - Klik "Transfer Bank" → tampilkan transaksi hari ini dengan status Transfer Bank
-  - Klik "Belum Bayar" → tampilkan transaksi hari ini dengan status BON
-- **RULE-A2:** Dashboard otomatis **reset setiap hari jam 00:00** (data historis tetap ada di Menu Report, hanya angka di dashboard yang reset)
-- **RULE-A3:** Semua nilai uang ditampilkan dengan format **"Rp 1.000.000"** (pakai titik sebagai pemisah ribuan)
-- **RULE-A4:** Tampilkan jam & tanggal real-time di header dashboard
+#### 3.1.2 Cara Hitung Keuntungan Bersih
+
+```
+Keuntungan Bersih Hari Ini =
+  SUM untuk setiap InvoiceItem dari transaksi hari ini dimana productId NOT NULL:
+    (InvoiceItem.unitPrice − InvoiceItem.buyPriceSnapshot) × InvoiceItem.quantity
+
+Penjelasan:
+- unitPrice         = harga jual aktual saat transaksi (bisa beda dari harga default)
+- buyPriceSnapshot  = harga beli yang di-snapshot saat transaksi disimpan (tidak berubah)
+- Item tanpa productId (ketik manual) = tidak masuk kalkulasi, tidak ada data harga beli
+```
+
+**Contoh kalkulasi:**
+```
+Faktur 0-ABC-001 — 19-04-2026:
+
+  Semen BCC 25 sak
+    Harga jual: Rp 74.000 | Harga beli snapshot: Rp 68.000
+    Laba: (74.000 − 68.000) × 25 = Rp 150.000
+
+  Kayu 4x6 20 batang
+    Harga jual: Rp 24.000 | Harga beli snapshot: Rp 20.000
+    Laba: (24.000 − 20.000) × 20 = Rp 80.000
+
+Keuntungan Bersih Hari Ini = Rp 230.000
+Total Omzet Hari Ini       = Rp 2.330.000
+```
+
+#### 3.1.3 Rule Dashboard
+- **RULE-A1:** Kartu 1–6 **clickable** → redirect ke Report dengan filter otomatis.
+- **RULE-A2:** Kartu 7 (Stok Menipis) clickable → redirect ke `/stock?filter=low_stock`.
+- **RULE-A3:** Query selalu filter `WHERE tanggal = HARI INI (WIB)`.
+- **RULE-A4:** Format uang `Rp 1.000.000` (titik pemisah ribuan).
+- **RULE-A5:** Header menampilkan jam & tanggal real-time.
+- **RULE-A6:** Keuntungan Bersih dihitung dari `buyPriceSnapshot` di `InvoiceItem` (bukan harga beli produk saat ini). Mengubah harga beli produk di kemudian hari tidak mempengaruhi laba historis.
+- **RULE-A7:** Jika belum ada transaksi atau semua item manual → Keuntungan Bersih tampil `Rp 0` (bukan error/kosong).
 
 ---
 
 ### 3.2 MENU B — TAMBAH TRANSAKSI
 
-**Fungsi:** Input transaksi baru per nota/faktur. Ini adalah **fitur pilar utama**.
+**Fungsi:** Input transaksi per nota/faktur, terintegrasi dengan stok.
 
 #### 3.2.1 Struktur Form
 
-Form dibagi 3 section:
+**📋 SECTION 1 — Header Faktur**
 
-**📋 SECTION 1 — Header Faktur (sekali isi per nota)**
-| Field | Tipe | Validasi | Keterangan |
-|-------|------|----------|------------|
-| Nomor Faktur | Text | Required, unique | Contoh: `0-ABC-001` |
-| Tanggal | Date | Required, default: hari ini | Format: DD-MM-YYYY |
+| Field | Tipe | Validasi |
+|-------|------|----------|
+| Nomor Faktur | Text | Required, unique |
+| Tanggal | Date | Required, default: hari ini |
 
-**🛒 SECTION 2 — Detail Barang (bisa ditambah berkali-kali)**
+**🛒 SECTION 2 — Detail Barang**
 
-User bisa menambahkan item barang secara dinamis (add more rows):
+| Field | Tipe | Keterangan |
+|-------|------|------------|
+| Nama Barang | Autocomplete + ketik bebas | Search dari stok atau ketik manual |
+| QTY | Number (min 1) | Warning jika QTY > stok tersedia |
+| Harga Satuan | Currency | Auto-fill dari stok, bisa diubah |
+| Subtotal | Currency | Auto = QTY × Harga, bisa koreksi manual (ada tombol reset 🔄) |
 
-| Field | Tipe | Validasi | Keterangan |
-|-------|------|----------|------------|
-| Nama Barang | Text | Required | Contoh: "Semen BCC" |
-| Quantity (QTY) | Number | Required, min 1 | Contoh: 25 |
-| Harga Satuan | Currency (Rp) | Required, input bebas ketik | Contoh: Rp 74.000 |
-| Subtotal | Currency (Rp) | Auto-calculate (QTY × Harga Satuan), **bisa dikoreksi manual** | Contoh: Rp 1.850.000 |
-
-**Tombol:** `[+ Tambah Barang]` untuk menambah row baru
-
-**💳 SECTION 3 — Pembayaran & Total**
-| Field | Tipe | Validasi | Keterangan |
-|-------|------|----------|------------|
-| Metode Pembayaran | Dropdown/Radio | Required | Pilihan: Cash, Cash COD, QRIS, Transfer Bank, Belum Bayar (BON) |
-| Pilihan Bank | Dropdown | Muncul jika pilih Transfer Bank | Data dari Menu Setting (sync) |
-| **Total Belanja** | Currency (Rp) | Auto-sum semua subtotal | **Read-only, bold, ukuran besar** |
+**💳 SECTION 3 — Pembayaran & Total** *(sama dengan v1 — tidak berubah)*
 
 #### 3.2.2 Rule Tambah Transaksi
-- **RULE-B1:** Format uang **Rp** dengan pemisah ribuan titik (contoh: `Rp 74.000`). **WAJIB bisa diketik langsung**, TIDAK ADA tombol panah atas-bawah (no spinner/stepper).
-- **RULE-B2:** Dalam 1 nomor faktur, bisa ada **banyak baris barang** (unlimited). Contoh: 1 faktur bisa punya 8+ barang.
-- **RULE-B3:** **Subtotal per barang** = `QTY × Harga Satuan` (auto-calculate). Tapi field subtotal **bisa dikoreksi manual** jika ada diskon/pembulatan. Sediakan tombol/icon 🔄 untuk reset ke nilai otomatis.
-- **RULE-B4:** **Total Belanja** = jumlah semua subtotal. Tidak bisa diedit manual. Real-time update setiap kali user ubah QTY/harga.
-- **RULE-B5:** **Status pembayaran diberi warna** sebagai pembeda:
-  - 🟢 **Hijau** → Cash / Cash COD
-  - 🔵 **Biru** → QRIS
-  - 🟡 **Kuning** → Transfer Bank
-  - 🔴 **Merah** → Belum Bayar (BON)
-- **RULE-B6:** Pilihan bank untuk Transfer Bank **harus sync otomatis** dari data bank di Menu Setting. Jika user belum tambah bank di Setting, tampilkan alert: "Silakan tambah bank terlebih dahulu di Menu Setting."
-- **RULE-B7:** Tanggal **default = hari ini** (tidak perlu pilih-pilih), tapi tetap bisa diubah jika perlu input backdate.
-- **RULE-B8:** Tombol `[Simpan Transaksi]` di bawah. Setelah simpan, tampilkan toast "✅ Transaksi berhasil disimpan" dan form di-reset.
-- **RULE-B9:** Validasi: minimal 1 barang harus diisi. Tidak boleh save faktur kosong.
-
-#### 3.2.3 Contoh Penerapan (Test Case)
-```
-Nomor Faktur : 0-ABC-001
-Tanggal      : 19-04-2026
-
-Barang:
-┌─────────────────┬─────┬──────────────┬──────────────┐
-│ Nama Barang     │ QTY │ Harga Satuan │ Subtotal     │
-├─────────────────┼─────┼──────────────┼──────────────┤
-│ Semen BCC       │ 25  │ Rp 74.000    │ Rp 1.850.000 │
-│ Kayu 4x6 Pas    │ 20  │ Rp 24.000    │ Rp 480.000   │
-└─────────────────┴─────┴──────────────┴──────────────┘
-
-Total Belanja : Rp 2.330.000
-Pembayaran    : Cash COD 🟢
-```
+- **RULE-B1–B9** *(sama dengan PRD v1, tidak berubah)*
+- **RULE-B10:** Field Nama Barang punya **autocomplete** yang search dari `Product` (isActive=true), berdasarkan nama saja (tidak ada kode SKU).
+- **RULE-B11:** Pilih barang dari autocomplete → **Harga Satuan auto-fill** dari `Product.sellingPrice`. Tetap bisa diubah manual.
+- **RULE-B12:** Badge stok tampil di sebelah nama: `📦 45 SAK`
+  - 🟢 Hijau: stok > minStock
+  - 🟡 Kuning: 0 < stok ≤ minStock (menipis)
+  - 🔴 Merah: stok = 0 (habis)
+- **RULE-B13:** QTY > stok → warning kuning, **tidak memblokir** transaksi.
+- **RULE-B14:** Simpan transaksi → stok berkurang secara atomic di server.
+- **RULE-B15:** Nama ketik manual (tanpa pilih dari autocomplete) → `productId = NULL` → stok tidak berkurang, transaksi tetap tercatat.
+- **RULE-B16 *(BARU)*:** Saat simpan dan `productId NOT NULL`, server menyimpan `buyPriceSnapshot = Product.buyPrice` ke `InvoiceItem.buyPriceSnapshot`. Field ini adalah fondasi kalkulasi keuntungan bersih.
 
 ---
 
-### 3.3 MENU C — REPORT (LAPORAN)
+### 3.3 MENU C — REPORT
 
-**Fungsi:** Menampilkan riwayat transaksi secara detail dan download laporan Excel profesional.
+*(Semua fitur v1 tetap. Tambahan:)*
 
-#### 3.3.1 Fitur Filter & Tampilan
-- **Filter Tanggal:** Date range picker (Dari Tanggal — Sampai Tanggal)
-- **Filter Cepat:** Tombol shortcut [Hari Ini] [Kemarin] [7 Hari Terakhir] [Bulan Ini] [Custom]
-- **Filter Metode Pembayaran:** Dropdown (Semua, Cash, QRIS, Transfer Bank, BON)
-- **Search:** Berdasarkan Nomor Faktur
-
-#### 3.3.2 Tabel Transaksi (Parent Table)
-
-| No Faktur | Jam | Tanggal | Total Belanja | Status | Aksi |
-|-----------|-----|---------|---------------|--------|------|
-| 0-ABC-001 | 14:30 | 19-04-2026 | Rp 2.330.000 | 🟢 Cash COD | [👁️ Detail] |
-| 0-ABC-002 | 15:15 | 19-04-2026 | Rp 500.000 | 🔵 QRIS | [👁️ Detail] |
-
-- **RULE-C1:** Klik row atau tombol `[Detail]` → expand/modal yang menampilkan **detail per barang** di faktur tersebut (semua item dalam faktur).
-- **RULE-C2:** Support pagination (default 20 row per halaman).
-
-#### 3.3.3 Summary Card di Atas Tabel
-Di atas tabel, tampilkan ringkasan sesuai filter aktif:
-- 💰 Total Keuntungan: Rp X.XXX.XXX
-- 💵 Total Cash: Rp X.XXX.XXX
-- 📱 Total QRIS: Rp X.XXX.XXX
-- 🏦 Total Transfer Bank: Rp X.XXX.XXX (breakdown per bank)
-- ⚠️ Total BON: Rp X.XXX.XXX
-
-#### 3.3.4 Download Laporan Excel (PENTING!)
-
-Tombol: `[📥 Download Laporan Excel]`
-
-**RULE-C3:** File Excel yang di-generate **harus terlihat profesional**, dengan format:
-
-**📄 Struktur Excel:**
-```
-┌──────────────────────────────────────────────────────┐
-│  [LOGO]   NAMA PERUSAHAAN (dari Setting)            │
-│           Alamat Perusahaan (dari Setting)          │
-│                                                      │
-│           LAPORAN KEUANGAN                           │
-│           Periode: 01-04-2026 s/d 19-04-2026        │
-├──────────────────────────────────────────────────────┤
-│                                                      │
-│  📊 RINGKASAN                                        │
-│  ┌─────────────────────────┬───────────────────┐   │
-│  │ Total Keuntungan        │ Rp 50.000.000     │   │
-│  │ Total Pembayaran Cash   │ Rp 20.000.000     │   │
-│  │ Total Pembayaran QRIS   │ Rp 15.000.000     │   │
-│  │ Total Transfer Bank     │ Rp 10.000.000     │   │
-│  │ - Bank Nagari           │ Rp 5.000.000      │   │
-│  │ - BRI                   │ Rp 3.000.000      │   │
-│  │ - BSI                   │ Rp 2.000.000      │   │
-│  │ Total Belum Bayar (BON) │ Rp 5.000.000      │   │
-│  └─────────────────────────┴───────────────────┘   │
-│                                                      │
-│  📋 DETAIL TRANSAKSI                                 │
-│  ┌────────┬────────┬─────────┬──────────┬────────┐ │
-│  │No Fakt │ Tgl    │Item     │Subtotal  │Status  │ │
-│  └────────┴────────┴─────────┴──────────┴────────┘ │
-│                                                      │
-│  Dicetak pada: 19-04-2026 16:00 WIB                 │
-└──────────────────────────────────────────────────────┘
-```
-
-**Styling Excel yang wajib:**
-- Header perusahaan **merged cell** + bold + center
-- Title "LAPORAN KEUANGAN" huruf besar, bold, background warna
-- Tabel ringkasan dengan border, background alternating (zebra stripes)
-- Tabel detail dengan header berwarna (misal biru navy + font putih)
-- Kolom uang rata kanan dengan format currency `Rp #.##0`
-- Footer dengan tanggal cetak
-- Kolom status diberi **conditional formatting** (warna sesuai metode pembayaran)
-
-**Library rekomendasi:** `exceljs` (Node.js) — support styling lengkap.
-
-**Format filename:** `Laporan-NCash-[dari]-sampai-[sampai].xlsx`
-Contoh: `Laporan-NCash-01042026-19042026.xlsx`
+- **RULE-C4:** Tabel Report tambah kolom **Laba** per faktur.
+  Kalkulasi: `SUM (unitPrice − buyPriceSnapshot) × qty` untuk item ber-`productId`.
+  Jika seluruh item manual → tampil tanda "-".
+- **RULE-C5:** Summary card di atas tabel tambah **Total Laba Bersih** sesuai filter aktif.
+- **RULE-C6:** Excel export tambahkan kolom Laba per faktur dan Total Laba Bersih di section Ringkasan.
 
 ---
 
 ### 3.4 MENU D — SETTING
 
-**Fungsi:** Konfigurasi aplikasi.
-
-#### 3.4.1 Sub-menu Setting
-
-**🏦 A. Manajemen Bank Transfer**
-- Tampilkan list bank yang sudah terdaftar
-- Tombol `[+ Tambah Bank]` → input: Nama Bank, Nomor Rekening (opsional), Atas Nama (opsional)
-- Bisa Edit & Hapus bank
-- **RULE-D1:** Data bank di sini **sync otomatis** ke dropdown "Pilihan Bank" di Menu Tambah Transaksi.
-
-**🏢 B. Informasi Perusahaan**
-- Nama Perusahaan (text)
-- Alamat Perusahaan (textarea)
-- No Telepon (opsional)
-- Logo Perusahaan (upload gambar, opsional — akan muncul di Excel)
-- **RULE-D2:** Data ini **otomatis muncul** di header Laporan Excel.
-
-**🔐 C. Ganti Password**
-- Password Lama
-- Password Baru
-- Konfirmasi Password Baru
-- Tombol `[Simpan]`
-
-#### 3.4.2 Rule Setting
-- **RULE-D3:** Semua perubahan setting **simpan ke database**, bukan di localStorage.
-- **RULE-D4:** Hanya user terlogin yang bisa akses menu ini (protected route).
+*(Tidak berubah dari v1 — bank, profil perusahaan, ganti password)*
 
 ---
 
-## 4. 🗄️ Database Schema (Contoh dengan Prisma)
+### 3.5 MENU E — MANAJEMEN STOK ⭐
+
+**Fungsi:** Kelola database barang. Stok bisa dikelola **sepenuhnya tanpa template Excel** — tambah, edit, hapus, sesuaikan stok langsung dari aplikasi kapan saja. Template Excel hanya alat bantu untuk input massal pertama kali.
+
+#### 3.5.1 Tabel Daftar Barang
+
+| Kolom | Keterangan |
+|-------|------------|
+| Nama Barang | Nama lengkap |
+| Satuan | SAK / BATANG / dll (bebas) |
+| Harga Beli | Format Rp |
+| Harga Jual | Format Rp |
+| Margin | `((Jual−Beli)/Beli)×100%` — auto-hitung, read-only |
+| Stok | Jumlah saat ini |
+| Stok Min | Batas notifikasi |
+| Status | Badge: Normal / Menipis / Habis |
+| Aksi | Edit Stok, Edit Data, Hapus |
+
+**Filter:** Search nama (debounce 300ms) + dropdown status (Semua / Normal / Menipis / Habis).
+*(Tidak ada filter kategori — kategori tidak ada di v3)*
+
+**Sorting:** Nama A-Z default, bisa sort kolom lain.
+
+**Pagination:** 50 item per halaman.
+
+#### 3.5.2 Edit Stok Cepat (Inline)
+
+Tombol **[✏️ Stok]** di kolom Aksi → popover kecil langsung di baris tersebut:
+- Stok baru: number input
+- Alasan: dropdown singkat
+- Tombol [Simpan]
+
+Ini cara tercepat ubah stok tanpa buka form lengkap.
+
+#### 3.5.3 Tambah Barang Manual
+
+Tombol `[+ Tambah Barang]` → dialog form:
+
+| Field | Tipe | Validasi |
+|-------|------|----------|
+| Nama Barang | Text | Required |
+| Satuan | **Combobox** (saran + ketik bebas) | Required |
+| Harga Beli | Currency | Required |
+| Harga Jual | Currency | Required |
+| Stok Awal | Number | Required, min 0 |
+| Stok Minimum | Number | Opsional, default 0 |
+| Keterangan | Text | Opsional |
+
+**RULE-E1 — Satuan Combobox:** Tampilkan saran: `SAK, PCS, BATANG, LEMBAR, METER, KG, LITER, ROLL, SET, KARDUS, PASANG, UNIT, BOX`. User **bebas mengetik satuan lain** yang tidak ada di saran — nilai apapun diterima dan disimpan. Gunakan komponen shadcn Combobox.
+
+#### 3.5.4 Edit Data Barang
+
+Tombol `[✏️ Edit]` → dialog form pre-filled. Semua field bisa diubah.
+
+> Mengubah `Harga Beli` tidak mengubah `buyPriceSnapshot` di transaksi lama. Laba historis tetap akurat.
+
+#### 3.5.5 Hapus Barang
+
+Tombol `[🗑️ Hapus]` → AlertDialog konfirmasi → soft-delete (`isActive = false`).
+Barang hilang dari tabel dan autocomplete, tapi data invoice historis tetap utuh.
+
+#### 3.5.6 Penyesuaian Stok (Stock Adjustment)
+
+Tombol `[🔧 Sesuaikan]` → dialog:
+- Stok saat ini: readonly
+- Stok baru: number input (min 0)
+- Selisih: tampil realtime (+X / -X)
+- Alasan: Stok Opname / Terima Barang / Barang Rusak / Barang Hilang / Koreksi Lain
+- Catatan: textarea opsional
+
+Setiap penyesuaian → insert ke `StockAdjustment` + `StockMovement` (audit trail).
+
+#### 3.5.7 Import Excel Massal
+
+Tombol `[📥 Import Excel]` → dialog:
+- File input (`.xlsx`, max 5MB)
+- Mode: **Tambah Baru** / **Update & Tambah** / **Ganti Semua** *(konfirmasi wajib!)*
+- Progress bar selama proses (batch 100 baris)
+- Hasil: ringkasan sukses + tabel error per baris (nomor baris + alasan)
+
+#### 3.5.8 Export Data Stok
+
+- `[📤 Export Template]` → download template Excel kosong
+- `[📤 Export Data Stok]` → download seluruh data stok saat ini dalam format Excel
+
+---
+
+## 4. 🗄️ Database Schema — v3.0
 
 ```prisma
-// schema.prisma
+// schema.prisma — N-Cash v3.0
+// PERUBAHAN dari v2:
+//   Product: hapus field code, category, subCategory
+//   InvoiceItem: tambah field buyPriceSnapshot (Decimal, nullable)
 
 model User {
   id        String   @id @default(cuid())
   username  String   @unique
-  password  String   // hashed dengan bcrypt
+  password  String
   createdAt DateTime @default(now())
 }
 
@@ -280,13 +274,61 @@ model CompanyProfile {
 }
 
 model Bank {
-  id            String        @id @default(cuid())
-  name          String        // contoh: "Bank Nagari"
+  id            String    @id @default(cuid())
+  name          String
   accountNumber String?
   accountHolder String?
-  createdAt     DateTime      @default(now())
-  transactions  Transaction[]
+  createdAt     DateTime  @default(now())
+  invoices      Invoice[]
 }
+
+// ─── STOK ───────────────────────────────────────────────────────────────────
+
+model Product {
+  id           String   @id @default(cuid())
+  name         String                       // Nama barang
+  unit         String                       // Satuan bebas: SAK, PCS, BATANG, dll
+  buyPrice     Decimal  @db.Decimal(15, 2)  // Harga beli (modal)
+  sellingPrice Decimal  @db.Decimal(15, 2)  // Harga jual default
+  stock        Int      @default(0)         // Stok saat ini (tidak boleh < 0)
+  minStock     Int      @default(0)         // Batas notifikasi
+  notes        String?
+  isActive     Boolean  @default(true)      // Soft-delete flag
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  invoiceItems   InvoiceItem[]
+  stockMovements StockMovement[]
+  adjustments    StockAdjustment[]
+
+  @@index([name])  // Untuk performa autocomplete search
+}
+
+model StockMovement {
+  id           String   @id @default(cuid())
+  productId    String
+  product      Product  @relation(fields: [productId], references: [id])
+  type         String   // OUT (transaksi), IN (terima barang), ADJUST
+  quantity     Int      // Positif = masuk, Negatif = keluar
+  stockBefore  Int
+  stockAfter   Int
+  referenceId  String?  // invoiceId atau adjustmentId
+  notes        String?
+  createdAt    DateTime @default(now())
+}
+
+model StockAdjustment {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  oldStock  Int
+  newStock  Int
+  reason    String   // STOCK_OPNAME, RECEIVE, DAMAGE, LOST, OTHER
+  notes     String?
+  createdAt DateTime @default(now())
+}
+
+// ─── INVOICE ────────────────────────────────────────────────────────────────
 
 model Invoice {
   id            String        @id @default(cuid())
@@ -302,23 +344,17 @@ model Invoice {
 }
 
 model InvoiceItem {
-  id         String   @id @default(cuid())
-  invoiceId  String
-  invoice    Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  itemName   String
-  quantity   Int
-  unitPrice  Decimal  @db.Decimal(15, 2)
-  subtotal   Decimal  @db.Decimal(15, 2) // bisa dikoreksi manual
-}
-
-model Transaction {
-  // Optional: untuk kebutuhan tracking detail pembayaran (jika BON lunas)
-  id        String   @id @default(cuid())
-  invoiceId String
-  amount    Decimal  @db.Decimal(15, 2)
-  bankId    String?
-  bank      Bank?    @relation(fields: [bankId], references: [id])
-  createdAt DateTime @default(now())
+  id               String   @id @default(cuid())
+  invoiceId        String
+  invoice          Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  productId        String?                       // NULL = barang ketik manual
+  product          Product? @relation(fields: [productId], references: [id])
+  itemName         String                        // Nama (selalu disimpan)
+  quantity         Int
+  unitPrice        Decimal  @db.Decimal(15, 2)   // Harga jual aktual saat transaksi
+  buyPriceSnapshot Decimal? @db.Decimal(15, 2)   // Snapshot harga beli saat transaksi
+                                                  // NULL jika item manual (productId null)
+  subtotal         Decimal  @db.Decimal(15, 2)
 }
 ```
 
@@ -326,169 +362,108 @@ model Transaction {
 
 ## 5. 🎨 UI/UX Guidelines
 
-### 5.1 Layout
-- **Desktop:** Sidebar kiri (navigation) + Main content area
-- **Mobile:** Bottom navigation bar (Dashboard, Tambah, Report, Setting)
+### 5.1 Navigasi
+| | Menu |
+|-|------|
+| 1 | 🏠 Dashboard |
+| 2 | ➕ Tambah Transaksi |
+| 3 | 📋 Report |
+| 4 | 📦 Stok |
+| 5 | ⚙️ Setting |
 
 ### 5.2 Warna Tema
-- **Primary:** Biru (#2563eb) — profesional, kepercayaan
-- **Success (Cash):** Hijau (#16a34a)
-- **Info (QRIS):** Biru muda (#0ea5e9)
-- **Warning (Bank):** Kuning (#eab308)
-- **Danger (BON):** Merah (#dc2626)
-- **Background:** Putih/Abu-abu muda (#f9fafb)
+| Elemen | Warna |
+|--------|-------|
+| Primary / Biru | #2563eb |
+| Keuntungan Bersih | #15803d (Hijau tua) |
+| Cash / Normal | #16a34a (Hijau) |
+| QRIS | #0ea5e9 (Biru muda) |
+| Transfer Bank / Menipis | #eab308 (Kuning) |
+| BON / Habis | #dc2626 (Merah) |
+| Stok Menipis | #f97316 (Oranye) |
+| Background | #f9fafb |
 
-### 5.3 Typography
-- Font: Inter / Poppins (Google Fonts)
-- Angka uang: font monospace agar rata (contoh: `JetBrains Mono`)
+### 5.3 Combobox Satuan
+Gunakan shadcn Combobox — user bisa pilih dari saran ATAU ketik bebas. Nilai apapun diterima.
 
-### 5.4 Komponen UI Penting
-- Toast notification untuk feedback (success/error)
-- Loading skeleton saat fetch data
-- Modal untuk detail faktur
-- Date range picker
-- Currency input (format otomatis saat ketik)
-
-### 5.5 Mobile Responsive
-- Wajib responsive. Toko bangunan sering input pakai HP/tablet.
+### 5.4 Autocomplete Nama Barang
+- Debounce 300ms, min 2 karakter
+- Item dropdown: `Nama Barang — Stok: X [Satuan]`
+- Warna info stok: hijau / kuning / merah
+- Keyboard navigable (arrow, enter, escape)
+- Tidak ada hasil → "Tidak ditemukan — ketik nama manual"
 
 ---
 
 ## 6. 🔒 Keamanan
 
-- **AUTH-1:** Login dengan username + password
-- **AUTH-2:** Password di-hash pakai `bcrypt` (min 10 rounds)
-- **AUTH-3:** Session pakai JWT atau NextAuth session
-- **AUTH-4:** Semua route (kecuali `/login`) harus protected
-- **AUTH-5:** Default credential saat fresh install: `admin / admin123` — **paksa ganti password saat first login**
-- **AUTH-6:** Rate limiting di endpoint login (anti brute-force)
+- AUTH-1 s/d AUTH-6 *(sama dengan v1)*
+- **AUTH-7:** Upload Excel divalidasi MIME type, max 5MB, cek header kolom sebelum proses.
 
 ---
 
-## 7. 🚀 Deployment di Proxmox
+## 7. ⚠️ Edge Cases
 
-### 7.1 Opsi Deployment
-**Opsi A (Recommended):** Docker Container
-```bash
-# Struktur
-- Dockerfile (Next.js)
-- docker-compose.yml
-- volume untuk database SQLite (agar data persist)
-```
-
-**Opsi B:** LXC Container di Proxmox (install Node.js langsung)
-
-### 7.2 Backup Strategy
-- **RULE-DEPLOY-1:** Database SQLite (`.db` file) di-backup otomatis tiap hari via cron
-- **RULE-DEPLOY-2:** Snapshot VM/LXC Proxmox mingguan
+| # | Kasus | Penanganan |
+|---|-------|------------|
+| 1 | Nomor faktur duplikat | Tolak, error |
+| 2 | Stok negatif | Stok ditulis 0, tidak ke negatif |
+| 3 | Item manual (tanpa stok) | productId=NULL, buyPriceSnapshot=NULL, tidak masuk kalkulasi laba |
+| 4 | Harga beli produk berubah setelah transaksi | buyPriceSnapshot tidak berubah, laba historis tetap akurat |
+| 5 | Import 1500+ barang | Batch 100 baris + progress bar + error report per baris |
+| 6 | Header Excel tidak sesuai template | Tolak file, tampilkan error jelas |
+| 7 | Satuan tidak ada di saran | Combobox menerima input bebas |
+| 8 | Hapus barang yang ada di invoice historis | Soft-delete, invoice tetap utuh |
+| 9 | Laba negatif | Tampilkan apa adanya (mungkin ada diskon besar) |
+| 10 | Timezone | Semua operasi tanggal pakai Asia/Jakarta (WIB) |
 
 ---
 
-## 8. 📋 Milestones & Roadmap
+## 8. 📋 Milestones
 
-### Phase 1 — MVP (Target: 1-2 minggu vibe coding)
-- [x] Setup project Next.js + Prisma + SQLite
-- [x] Auth sederhana (login/logout)
-- [x] Menu Tambah Transaksi (fitur pilar)
-- [x] Menu Dashboard (5 kartu ringkasan)
-- [x] Menu Report (tabel + filter tanggal)
-- [x] Menu Setting (bank, company profile, password)
+### Phase 1 & 2 ✅ Selesai
+Setup, Auth, Tambah Transaksi, Dashboard (v1), Report, Setting, Export Excel.
 
-### Phase 2 — Enhancement (Target: 1 minggu)
-- [x] Export Excel profesional
-- [x] Detail faktur (modal)
-- [x] Mobile responsive polish
+### Phase 3 — Stok + Keuntungan Bersih ⭐ Sekarang
+- [ ] Schema v3 (Product tanpa kode/kategori, InvoiceItem + buyPriceSnapshot)
+- [ ] Menu Stok: tabel, filter, pagination
+- [ ] Edit stok cepat inline
+- [ ] Tambah / Edit / Hapus barang manual (termasuk combobox satuan)
+- [ ] Penyesuaian stok + audit trail
+- [ ] Import Excel massal (1500+ barang)
+- [ ] Export template & data stok
+- [ ] Autocomplete nama barang di form transaksi
+- [ ] Pengurangan stok otomatis + simpan buyPriceSnapshot
+- [ ] Badge stok di form transaksi
+- [ ] Card Keuntungan Bersih di dashboard
+- [ ] Kolom Laba + Total Laba Bersih di Report
+- [ ] Card Stok Menipis di dashboard
 
-### Phase 3 — Future (Optional)
-- [ ] Fitur "Lunasi BON" (ubah status BON jadi sudah bayar)
-- [ ] Multi-user (kasir & admin)
-- [ ] Grafik trend keuntungan bulanan (Chart.js)
-- [ ] Notifikasi BON jatuh tempo
-- [ ] Backup/restore database via UI
-- [ ] Print struk langsung ke thermal printer
-
----
-
-## 9. ⚠️ Edge Cases & Catatan Penting
-
-1. **Duplicate Nomor Faktur:** Validasi unique, tolak jika sudah ada.
-2. **Koreksi Manual Subtotal:** Simpan di database apa adanya (tidak re-calculate saat load).
-3. **Timezone:** Pakai `Asia/Jakarta` (WIB) untuk semua operasi tanggal.
-4. **Format Currency Input:** Saat user ketik `74000`, tampilkan real-time jadi `Rp 74.000`.
-5. **Hapus Transaksi:** Jangan hard-delete. Pakai soft-delete (field `deletedAt`) agar audit trail tetap ada.
-6. **Dashboard Reset Harian:** Bukan reset DATA, tapi query dashboard selalu filter `WHERE date = TODAY()`.
-7. **Handling QTY Desimal:** Untuk toko bangunan, QTY biasanya integer (pcs, sak, batang). Tapi jika ada meter/kg, siapkan field QTY bertipe decimal.
-8. **Transfer Bank Tanpa Bank Terdaftar:** Jika user pilih "Transfer Bank" tapi belum ada bank di Setting, redirect ke Setting dengan pesan yang jelas.
+### Phase 4 — Future
+- [ ] Fitur "Lunasi BON"
+- [ ] Fitur "Terima Barang" dari supplier
+- [ ] Laporan histori stok masuk/keluar per periode
+- [ ] Grafik trend laba & stok
+- [ ] Multi-user
+- [ ] Print struk thermal
 
 ---
 
-## 10. 🎬 Instruksi Vibe Coding untuk Claude Code
+## 9. ✅ Acceptance Criteria Phase 3
 
-Saat Anda mulai vibe code dengan Claude Code, gunakan urutan prompt berikut:
-
-### Prompt 1 — Setup
-```
-Baca file PRD.md ini. Buatkan saya struktur project Next.js 14 (App Router) + 
-TypeScript + Tailwind + shadcn/ui + Prisma + SQLite untuk aplikasi N-Cash.
-Setup juga authentication dengan NextAuth (Credentials Provider).
-```
-
-### Prompt 2 — Database
-```
-Buatkan Prisma schema sesuai PRD section 4. Jalankan migration dan seed
-dengan user default admin/admin123.
-```
-
-### Prompt 3 — Menu Tambah Transaksi (PILAR UTAMA)
-```
-Buatkan Menu B (Tambah Transaksi) sesuai PRD section 3.2.
-Prioritas utama, pastikan semua rule B1-B9 terpenuhi.
-Fokus ke UX: input currency bebas ketik tanpa spinner, bisa tambah barang dinamis.
-```
-
-### Prompt 4 — Dashboard & Report
-```
-Buatkan Menu Dashboard (section 3.1) dan Menu Report (section 3.3).
-Pastikan kartu dashboard clickable dan redirect dengan filter.
-```
-
-### Prompt 5 — Export Excel
-```
-Implementasikan fitur download Excel sesuai PRD section 3.3.4.
-Gunakan library exceljs. Styling harus profesional dengan header perusahaan,
-tabel ringkasan, dan tabel detail.
-```
-
-### Prompt 6 — Setting & Polish
-```
-Buatkan Menu Setting (section 3.4) dan polish UI mobile responsive.
-```
+- [ ] Import 1.500+ barang dari Excel tanpa timeout
+- [ ] Bisa tambah/edit/hapus barang langsung tanpa template Excel
+- [ ] Edit stok cepat inline dari tabel berfungsi
+- [ ] Combobox satuan bisa pilih dari saran DAN ketik bebas
+- [ ] Autocomplete nama barang di form transaksi berfungsi
+- [ ] Harga Satuan auto-fill saat pilih barang dari autocomplete
+- [ ] `buyPriceSnapshot` tersimpan di setiap InvoiceItem yang terhubung ke stok
+- [ ] Stok berkurang atomic saat transaksi disimpan
+- [ ] Stok tidak pernah negatif
+- [ ] Card Keuntungan Bersih di dashboard menampilkan angka akurat
+- [ ] Kolom Laba di Report berfungsi
+- [ ] Card Stok Menipis di dashboard linkable ke /stock
 
 ---
 
-## 11. ✅ Acceptance Criteria (Definition of Done)
-
-Aplikasi dianggap **selesai Phase 1** jika:
-- [ ] Bisa login/logout
-- [ ] Bisa tambah transaksi multi-item dengan semua metode pembayaran
-- [ ] Dashboard menampilkan 5 kartu ringkasan hari ini dan bisa diklik
-- [ ] Report bisa filter tanggal & export Excel profesional
-- [ ] Setting: bisa tambah bank, edit info perusahaan, ganti password
-- [ ] Data bank di Setting sync ke Menu Tambah Transaksi
-- [ ] Laporan Excel berisi nama & alamat perusahaan dari Setting
-- [ ] Dashboard reset otomatis tiap hari jam 00:00
-- [ ] Mobile responsive (bisa dipakai di HP)
-- [ ] Deploy-able di Docker/Proxmox
-
----
-
-## 📞 Kontak & Revisi
-
-**Prepared for:** Vibe coding session dengan Claude Code
-**Next Step:** Simpan file ini sebagai `PRD.md` di root folder project, lalu mulai dengan Prompt 1.
-
-> 💡 **Tips:** Saat vibe coding, jangan lupa commit ke Git setiap selesai 1 fitur biar gampang rollback kalau ada yang salah!
-
----
-
-**— End of PRD —**
+**— End of PRD v3.0 —**

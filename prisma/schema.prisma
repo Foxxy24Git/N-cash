@@ -57,13 +57,62 @@ model Invoice {
 }
 
 model InvoiceItem {
-  id        String  @id @default(cuid())
-  invoiceId String
-  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  itemName  String
-  quantity  Decimal
-  unitPrice Decimal
-  subtotal  Decimal
+  id               String   @id @default(cuid())
+  invoiceId        String
+  invoice          Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  productId        String?
+  product          Product? @relation(fields: [productId], references: [id])
+  itemName         String
+  quantity         Decimal
+  unitPrice        Decimal
+  buyPriceSnapshot Decimal?
+  subtotal         Decimal
+}
+
+// ─── STOK ───────────────────────────────────────────────────────────────────
+
+model Product {
+  id           String   @id @default(cuid())
+  name         String
+  unit         String
+  buyPrice     Decimal
+  sellingPrice Decimal
+  stock        Int      @default(0)
+  minStock     Int      @default(0)
+  notes        String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  invoiceItems   InvoiceItem[]
+  stockMovements StockMovement[]
+  adjustments    StockAdjustment[]
+
+  @@index([name])
+}
+
+model StockMovement {
+  id          String   @id @default(cuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  type        String
+  quantity    Int
+  stockBefore Int
+  stockAfter  Int
+  referenceId String?
+  notes       String?
+  createdAt   DateTime @default(now())
+}
+
+model StockAdjustment {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  oldStock  Int
+  newStock  Int
+  reason    String
+  notes     String?
+  createdAt DateTime @default(now())
 }
 
 model PaymentLog {
