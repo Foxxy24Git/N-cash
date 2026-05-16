@@ -75,6 +75,11 @@ export async function POST(request: Request) {
   // Baris 0-2 = judul/petunjuk, baris 3 = header → data mulai baris 4 (index 4)
   const dataRows = rows.slice(4)
 
+  const MAX_ROWS = 5000
+  if (dataRows.length > MAX_ROWS) {
+    return Response.json({ error: `Maksimal ${MAX_ROWS} baris per import` }, { status: 400 })
+  }
+
   const validRows: ValidRow[] = []
   const errors: ImportError[] = []
 
@@ -137,7 +142,7 @@ export async function POST(request: Request) {
           // mode: 'insensitive' tidak didukung SQLite — gunakan raw SQL LOWER()
           const results = await tx.$queryRaw<{ id: string }[]>`
             SELECT id FROM "Product"
-            WHERE lower(name) = lower(${row.name}) AND "isActive" = 1
+            WHERE lower(name) = lower(${row.name}) AND "isActive" = 1 -- SQLite stores Boolean as 0/1
             LIMIT 1
           `
           const existing = results[0] ?? null

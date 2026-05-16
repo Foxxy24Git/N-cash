@@ -48,7 +48,10 @@ export function ImportDialog() {
   }
 
   function handleOpenChange(next: boolean) {
-    if (!next) resetState()
+    if (!next) {
+      if (phase === 'done') router.refresh()
+      resetState()
+    }
     setOpen(next)
   }
 
@@ -125,9 +128,7 @@ export function ImportDialog() {
   }
 
   function handleClose() {
-    setOpen(false)
-    resetState()
-    router.refresh()
+    setOpen(false) // triggers handleOpenChange(false), which calls refresh if phase === 'done'
   }
 
   return (
