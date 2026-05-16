@@ -99,6 +99,13 @@ export async function GET() {
   row++
 
   // ─── Data rows (row 6+) ────────────────────────────────────────────────────
+  const dataBorder: Partial<ExcelJS.Borders> = {
+    top:    { style: 'thin' },
+    left:   { style: 'thin' },
+    bottom: { style: 'thin' },
+    right:  { style: 'thin' },
+  }
+
   for (const p of products) {
     const buyPrice     = Number(p.buyPrice)
     const sellingPrice = Number(p.sellingPrice)
@@ -109,13 +116,6 @@ export async function GET() {
       : p.stock <= p.minStock   ? orangeFill
       : whiteFill
 
-    const border: Partial<ExcelJS.Borders> = {
-      top:    { style: 'thin' },
-      left:   { style: 'thin' },
-      bottom: { style: 'thin' },
-      right:  { style: 'thin' },
-    }
-
     const setCell = (
       col: number,
       value: ExcelJS.CellValue,
@@ -124,7 +124,7 @@ export async function GET() {
       const c = ws.getCell(row, col)
       c.value  = value
       c.fill   = rowFill
-      c.border = border
+      c.border = dataBorder
       if (opts?.numFmt)    c.numFmt    = opts.numFmt
       if (opts?.alignment) c.alignment = opts.alignment
     }
