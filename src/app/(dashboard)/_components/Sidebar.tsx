@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, PlusCircle, BarChart3, Settings, LogOut } from 'lucide-react'
+import { LayoutDashboard, PlusCircle, BarChart3, Package, Settings, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { logoutAction } from '../_actions/auth'
 
@@ -10,6 +10,7 @@ const menuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/transactions/new', label: 'Tambah Transaksi', icon: PlusCircle },
   { href: '/reports', label: 'Report', icon: BarChart3 },
+  { href: '/stock', label: 'Stok', icon: Package },
   { href: '/settings', label: 'Setting', icon: Settings },
 ]
 
