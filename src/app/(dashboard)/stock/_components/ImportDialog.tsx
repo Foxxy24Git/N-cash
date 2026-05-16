@@ -56,6 +56,19 @@ export function ImportDialog() {
     const f = e.target.files?.[0] ?? null
     setFileError(null)
     if (!f) { setFile(null); return }
+
+    // MIME/extension check
+    const validTypes = [
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-excel',
+    ]
+    if (!validTypes.includes(f.type) && !f.name.toLowerCase().endsWith('.xlsx')) {
+      setFileError('Hanya file .xlsx yang didukung')
+      setFile(null)
+      e.target.value = ''
+      return
+    }
+
     if (f.size > 5 * 1024 * 1024) {
       setFileError('Ukuran file maksimal 5MB')
       setFile(null)
@@ -66,15 +79,22 @@ export function ImportDialog() {
   }
 
   async function handleDownloadTemplate() {
-    const res = await fetch('/api/stock/template')
-    if (!res.ok) return
-    const blob = await res.blob()
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'Template-Import-Stok-NCash.xlsx'
-    a.click()
-    URL.revokeObjectURL(url)
+    try {
+      const res = await fetch('/api/stock/template')
+      if (!res.ok) {
+        setApiError('Gagal mengunduh template, coba lagi')
+        return
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'Template-Import-Stok-NCash.xlsx'
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      setApiError('Terjadi kesalahan jaringan saat mengunduh template')
+    }
   }
 
   async function handleImport() {
@@ -113,7 +133,7 @@ export function ImportDialog() {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <button className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors">
+        <button type="button" className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors">
           📥 Import Excel
         </button>
       </DialogTrigger>
@@ -131,6 +151,7 @@ export function ImportDialog() {
                 Belum punya template? Download dulu.
               </p>
               <button
+                type="button"
                 onClick={handleDownloadTemplate}
                 className="shrink-0 text-sm font-medium text-blue-700 underline underline-offset-2 hover:text-blue-900"
               >
@@ -140,10 +161,11 @@ export function ImportDialog() {
 
             {/* File input */}
             <div className="space-y-1">
-              <label className="text-sm font-medium">
+              <label htmlFor="import-file" className="text-sm font-medium">
                 File Excel <span className="text-red-500">*</span>
               </label>
               <input
+                id="import-file"
                 ref={fileInputRef}
                 type="file"
                 accept=".xlsx"
@@ -159,8 +181,8 @@ export function ImportDialog() {
             </div>
 
             {/* Mode */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Mode Import</label>
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-medium">Mode Import</legend>
               <div className="space-y-2">
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input
@@ -191,7 +213,7 @@ export function ImportDialog() {
                   </div>
                 </label>
               </div>
-            </div>
+            </fieldset>
 
             {apiError && (
               <p className="text-xs text-red-700 bg-red-50 border border-red-200 rounded px-3 py-2">
