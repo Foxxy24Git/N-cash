@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { prisma } from '@/lib/prisma'
 import StockFilterBar, { type StatusFilter } from './_components/StockFilterBar'
 import StockTable, { type ProductRow } from './_components/StockTable'
+import { ProductFormDialog } from './_components/ProductFormDialog'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Stok — N-Cash' }
@@ -44,6 +45,7 @@ export default async function StockPage({ searchParams }: PageProps) {
       sellingPrice: true,
       stock:        true,
       minStock:     true,
+      notes:        true,
     },
   })
 
@@ -67,6 +69,7 @@ export default async function StockPage({ searchParams }: PageProps) {
       stock: p.stock,
       minStock: p.minStock,
       stockStatus,
+      notes: p.notes,
     }
   })
 
@@ -108,12 +111,7 @@ export default async function StockPage({ searchParams }: PageProps) {
           >
             📥 Import Excel
           </button>
-          <button
-            disabled
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-400 cursor-not-allowed"
-          >
-            + Tambah Barang
-          </button>
+          <ProductFormDialog mode="add" />
         </div>
       </div>
 

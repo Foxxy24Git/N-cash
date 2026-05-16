@@ -4,6 +4,7 @@ import {
 } from '@/components/ui/table'
 import { EmptyState } from '@/components/ui/empty-state'
 import { formatRupiah } from '@/lib/format'
+import { StockCrudButtons } from './StockCrudButtons'
 
 export interface ProductRow {
   id: string
@@ -15,6 +16,7 @@ export interface ProductRow {
   stock: number
   minStock: number
   stockStatus: 'normal' | 'low' | 'out'
+  notes: string | null
 }
 
 interface Props {
@@ -90,17 +92,7 @@ export default function StockTable({ rows, totalCount, page, totalPages, prevUrl
                       </span>
                     </TableCell>
                     <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <button disabled className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-400 cursor-not-allowed">
-                          ✏️ Stok
-                        </button>
-                        <button disabled className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-400 cursor-not-allowed">
-                          ✏️ Edit
-                        </button>
-                        <button disabled className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-400 cursor-not-allowed">
-                          🗑️ Hapus
-                        </button>
-                      </div>
+                      <StockCrudButtons row={row} />
                     </TableCell>
                   </TableRow>
                 )
