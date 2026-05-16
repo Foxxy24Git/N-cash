@@ -43,7 +43,17 @@ export async function POST(request: Request) {
     return Response.json({ error: 'File tidak ditemukan' }, { status: 400 })
   }
 
-  const arrayBuffer = await (file as Blob).arrayBuffer()
+  const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5 MB
+  if ((file as File).size > MAX_FILE_SIZE) {
+    return Response.json({ error: 'Ukuran file maksimal 5MB' }, { status: 400 })
+  }
+
+  const fileName = (file as File).name ?? ''
+  if (!fileName.toLowerCase().endsWith('.xlsx')) {
+    return Response.json({ error: 'Hanya file .xlsx yang diterima' }, { status: 400 })
+  }
+
+  const arrayBuffer = await (file as File).arrayBuffer()
   const buffer = Buffer.from(arrayBuffer)
 
   let workbook: XLSX.WorkBook
@@ -118,70 +128,81 @@ export async function POST(request: Request) {
   let updated = 0
   let skipped = 0
 
-  for (let i = 0; i < validRows.length; i += BATCH_SIZE) {
-    const batch = validRows.slice(i, i + BATCH_SIZE)
+  try {
+    for (let i = 0; i < validRows.length; i += BATCH_SIZE) {
+      const batch = validRows.slice(i, i + BATCH_SIZE)
 
-    await prisma.$transaction(async (tx) => {
-      for (const row of batch) {
-        // mode: 'insensitive' tidak didukung SQLite — gunakan raw SQL LOWER()
-        const results = await tx.$queryRaw<{ id: string }[]>`
-          SELECT id FROM "Product"
-          WHERE lower(name) = lower(${row.name}) AND "isActive" = 1
-          LIMIT 1
-        `
-        const existing = results[0] ?? null
+      await prisma.$transaction(async (tx) => {
+        for (const row of batch) {
+          // mode: 'insensitive' tidak didukung SQLite — gunakan raw SQL LOWER()
+          const results = await tx.$queryRaw<{ id: string }[]>`
+            SELECT id FROM "Product"
+            WHERE lower(name) = lower(${row.name}) AND "isActive" = 1
+            LIMIT 1
+          `
+          const existing = results[0] ?? null
 
-        if (mode === 'add_new') {
-          if (existing) {
-            skipped++
+          if (mode === 'add_new') {
+            if (existing) {
+              skipped++
+            } else {
+              await tx.product.create({
+                data: {
+                  name: row.name,
+                  unit: row.unit,
+                  buyPrice: row.buyPrice,
+                  sellingPrice: row.sellingPrice,
+                  stock: row.stock,
+                  minStock: row.minStock,
+                  notes: row.notes,
+                  isActive: true,
+                },
+              })
+              imported++
+            }
           } else {
-            await tx.product.create({
-              data: {
-                name: row.name,
-                unit: row.unit,
-                buyPrice: row.buyPrice,
-                sellingPrice: row.sellingPrice,
-                stock: row.stock,
-                minStock: row.minStock,
-                notes: row.notes,
-                isActive: true,
-              },
-            })
-            imported++
-          }
-        } else {
-          // upsert
-          if (existing) {
-            await tx.product.update({
-              where: { id: existing.id },
-              data: {
-                unit: row.unit,
-                buyPrice: row.buyPrice,
-                sellingPrice: row.sellingPrice,
-                stock: row.stock,
-                minStock: row.minStock,
-                notes: row.notes,
-              },
-            })
-            updated++
-          } else {
-            await tx.product.create({
-              data: {
-                name: row.name,
-                unit: row.unit,
-                buyPrice: row.buyPrice,
-                sellingPrice: row.sellingPrice,
-                stock: row.stock,
-                minStock: row.minStock,
-                notes: row.notes,
-                isActive: true,
-              },
-            })
-            imported++
+            // upsert
+            if (existing) {
+              await tx.product.update({
+                where: { id: existing.id },
+                data: {
+                  unit: row.unit,
+                  buyPrice: row.buyPrice,
+                  sellingPrice: row.sellingPrice,
+                  stock: row.stock,
+                  minStock: row.minStock,
+                  notes: row.notes,
+                },
+              })
+              updated++
+            } else {
+              await tx.product.create({
+                data: {
+                  name: row.name,
+                  unit: row.unit,
+                  buyPrice: row.buyPrice,
+                  sellingPrice: row.sellingPrice,
+                  stock: row.stock,
+                  minStock: row.minStock,
+                  notes: row.notes,
+                  isActive: true,
+                },
+              })
+              imported++
+            }
           }
         }
-      }
-    })
+      })
+    }
+  } catch {
+    return Response.json({
+      success: false,
+      error: 'Terjadi kesalahan saat menyimpan data. Sebagian data mungkin sudah tersimpan.',
+      imported,
+      updated,
+      skipped,
+      errors,
+    }, { status: 500 })
   }
 
   return Response.json({
