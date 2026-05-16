@@ -74,3 +74,55 @@ export async function deleteProduct(id: string): Promise<ActionResult> {
   revalidatePath('/stock')
   return { success: true }
 }
+
+export async function adjustStock(
+  productId: string,
+  newStock: number,
+  reason: string,
+  notes?: string,
+): Promise<ActionResult> {
+  if (newStock < 0) return { error: 'Stok tidak boleh negatif' }
+
+  const validReasons = ['STOCK_OPNAME', 'RECEIVE', 'DAMAGE', 'LOST', 'OTHER']
+  if (!validReasons.includes(reason)) return { error: 'Alasan tidak valid' }
+
+  let stockBefore: number
+
+  try {
+    const product = await prisma.product.findUnique({
+      where: { id: productId, isActive: true },
+      select: { stock: true },
+    })
+    if (!product) return { error: 'Barang tidak ditemukan' }
+    stockBefore = product.stock
+
+    await prisma.$transaction(async (tx) => {
+      await tx.product.update({ where: { id: productId }, data: { stock: newStock } })
+      const adjustment = await tx.stockAdjustment.create({
+        data: {
+          productId,
+          oldStock: stockBefore,
+          newStock,
+          reason,
+          notes: notes ?? null,
+        },
+      })
+      await tx.stockMovement.create({
+        data: {
+          productId,
+          type: 'ADJUST',
+          quantity: newStock - stockBefore,
+          stockBefore,
+          stockAfter: newStock,
+          referenceId: adjustment.id,
+          notes: notes ?? null,
+        },
+      })
+    })
+  } catch {
+    return { error: 'Gagal menyimpan penyesuaian stok. Coba lagi.' }
+  }
+
+  revalidatePath('/stock')
+  return { success: true }
+}
