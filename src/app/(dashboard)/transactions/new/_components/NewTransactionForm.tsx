@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { getBanks } from '../_actions/getBanks'
 import { toast } from 'sonner'
 import { createTransaction } from '../_actions/createTransaction'
+import { getStockStatus, STOCK_BADGE_CLASS, STOCK_TEXT_CLASS } from '@/lib/stock-status'
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
@@ -134,19 +135,20 @@ function ProductAutocomplete({
   const [results, setResults] = useState<ProductResult[]>([])
   const [highlighted, setHighlighted] = useState(-1)
   const [loading, setLoading] = useState(false)
+  const [dropUp, setDropUp] = useState(false)
   const wrapperRef = useRef<HTMLDivElement>(null)
   const itemRefs = useRef<(HTMLDivElement | null)[]>([])
 
-  // Click outside to close
+  // Click/touch outside to close
   useEffect(() => {
-    function handleMouseDown(e: MouseEvent) {
+    function handlePointerDown(e: PointerEvent) {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
         setOpen(false)
         setHighlighted(-1)
       }
     }
-    document.addEventListener('mousedown', handleMouseDown)
-    return () => document.removeEventListener('mousedown', handleMouseDown)
+    document.addEventListener('pointerdown', handlePointerDown)
+    return () => document.removeEventListener('pointerdown', handlePointerDown)
   }, [])
 
   // Scroll highlighted item into view
@@ -156,7 +158,7 @@ function ProductAutocomplete({
     }
   }, [highlighted])
 
-  // Debounced fetch
+  // Debounced fetch + measure drop direction
   useEffect(() => {
     if (value.length < 2) {
       setOpen(false)
@@ -166,6 +168,13 @@ function ProductAutocomplete({
 
     const controller = new AbortController()
     const timer = setTimeout(async () => {
+      // Measure available space before opening
+      if (wrapperRef.current) {
+        const rect = wrapperRef.current.getBoundingClientRect()
+        const spaceBelow = window.innerHeight - rect.bottom
+        setDropUp(spaceBelow < 240 && rect.top > 240)
+      }
+
       setLoading(true)
       try {
         const res = await fetch(
@@ -212,12 +221,6 @@ function ProductAutocomplete({
     }
   }
 
-  const stockColor = (product: ProductResult) => {
-    if (product.stock === 0) return 'text-red-500'
-    if (product.stock <= product.minStock) return 'text-yellow-500'
-    return 'text-green-600'
-  }
-
   return (
     <div ref={wrapperRef} className="relative">
       <input
@@ -230,27 +233,35 @@ function ProductAutocomplete({
           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
       />
       {open && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+        <div
+          className={cn(
+            'absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto',
+            dropUp ? 'bottom-full mb-1' : 'top-full mt-1'
+          )}
+        >
           {loading ? (
             <p className="px-3 py-2 text-sm text-gray-400 italic">Mencari...</p>
           ) : results.length > 0 ? (
-            results.map((product, idx) => (
-              <div
-                key={product.id}
-                ref={(el) => { itemRefs.current[idx] = el }}
-                onMouseDown={() => handleSelect(product)}
-                className={cn(
-                  'px-3 py-2 text-sm cursor-pointer hover:bg-gray-50',
-                  idx === highlighted && 'bg-blue-50'
-                )}
-              >
-                <span className="font-medium">{product.name}</span>
-                {' — '}
-                <span className={cn('text-xs', stockColor(product))}>
-                  Stok: {product.stock} {product.unit}
-                </span>
-              </div>
-            ))
+            results.map((product, idx) => {
+              const status = getStockStatus(product.stock, product.minStock)
+              return (
+                <div
+                  key={product.id}
+                  ref={(el) => { itemRefs.current[idx] = el }}
+                  onPointerDown={() => handleSelect(product)}
+                  className={cn(
+                    'px-3 min-h-[44px] flex items-center cursor-pointer hover:bg-gray-50',
+                    idx === highlighted && 'bg-blue-50'
+                  )}
+                >
+                  <span className="font-medium">{product.name}</span>
+                  {' — '}
+                  <span className={cn('text-xs', STOCK_TEXT_CLASS[status])}>
+                    Stok: {product.stock} {product.unit}
+                  </span>
+                </div>
+              )
+            })
           ) : (
             <p className="px-3 py-2 text-sm text-gray-400 italic">
               Tidak ditemukan — lanjut ketik manual
@@ -317,12 +328,9 @@ function ItemRow({
     onUpdate(item.id, { itemName: text, productId: null, stock: null, unit: null, minStock: null })
   }
 
-  const stockBadgeColor =
-    item.stock === 0
-      ? 'bg-red-100 text-red-600'
-      : item.stock !== null && item.minStock !== null && item.stock <= item.minStock
-      ? 'bg-yellow-100 text-yellow-600'
-      : 'bg-green-100 text-green-600'
+  const stockBadgeColor = item.stock !== null && item.minStock !== null
+    ? STOCK_BADGE_CLASS[getStockStatus(item.stock, item.minStock)]
+    : 'bg-green-100 text-green-800 border-green-200'
 
   return (
     <tr className="border-t border-gray-100 hover:bg-gray-50/50">
