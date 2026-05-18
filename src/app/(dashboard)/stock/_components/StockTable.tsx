@@ -4,6 +4,7 @@ import {
 } from '@/components/ui/table'
 import { EmptyState } from '@/components/ui/empty-state'
 import { formatRupiah } from '@/lib/format'
+import { STOCK_BADGE_CLASS, STOCK_BADGE_LABEL } from '@/lib/stock-status'
 import { StockCrudButtons } from './StockCrudButtons'
 
 export interface ProductRow {
@@ -28,12 +29,6 @@ interface Props {
   nextUrl: string | null
 }
 
-const STATUS_BADGE: Record<'normal' | 'low' | 'out', { label: string; className: string }> = {
-  normal: { label: 'Normal',  className: 'bg-green-100 text-green-800 border-green-200' },
-  low:    { label: 'Menipis', className: 'bg-orange-100 text-orange-800 border-orange-200' },
-  out:    { label: 'Habis',   className: 'bg-red-100 text-red-800 border-red-200' },
-}
-
 const PAGE_SIZE = 50
 
 export default function StockTable({ rows, totalCount, page, totalPages, prevUrl, nextUrl }: Props) {
@@ -46,7 +41,9 @@ export default function StockTable({ rows, totalCount, page, totalPages, prevUrl
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50">
-              <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Nama Barang</TableHead>
+              <TableHead className="font-semibold text-gray-700 whitespace-nowrap sticky left-0 z-10 bg-gray-50">
+                Nama Barang
+              </TableHead>
               <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Satuan</TableHead>
               <TableHead className="font-semibold text-gray-700 text-right whitespace-nowrap">Harga Beli</TableHead>
               <TableHead className="font-semibold text-gray-700 text-right whitespace-nowrap">Harga Jual</TableHead>
@@ -69,34 +66,33 @@ export default function StockTable({ rows, totalCount, page, totalPages, prevUrl
                 </TableCell>
               </TableRow>
             ) : (
-              rows.map((row) => {
-                const badge = STATUS_BADGE[row.stockStatus]
-                return (
-                  <TableRow key={row.id} className="hover:bg-gray-50/50">
-                    <TableCell className="font-medium text-gray-900">{row.name}</TableCell>
-                    <TableCell className="text-gray-600 text-sm">{row.unit}</TableCell>
-                    <TableCell className="text-right font-mono text-sm text-gray-700">
-                      {formatRupiah(row.buyPrice)}
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-sm text-gray-700">
-                      {formatRupiah(row.sellingPrice)}
-                    </TableCell>
-                    <TableCell className="text-right text-sm text-gray-700">{row.margin}</TableCell>
-                    <TableCell className="text-center font-mono font-semibold text-gray-900">
-                      {row.stock}
-                    </TableCell>
-                    <TableCell className="text-center text-sm text-gray-500">{row.minStock}</TableCell>
-                    <TableCell>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${badge.className}`}>
-                        {badge.label}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <StockCrudButtons row={row} />
-                    </TableCell>
-                  </TableRow>
-                )
-              })
+              rows.map((row) => (
+                <TableRow key={row.id} className="group hover:bg-gray-50/50">
+                  <TableCell className="font-medium text-gray-900 sticky left-0 z-10 bg-white group-hover:bg-gray-50/50">
+                    {row.name}
+                  </TableCell>
+                  <TableCell className="text-gray-600 text-sm">{row.unit}</TableCell>
+                  <TableCell className="text-right font-mono text-sm text-gray-700">
+                    {formatRupiah(row.buyPrice)}
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-sm text-gray-700">
+                    {formatRupiah(row.sellingPrice)}
+                  </TableCell>
+                  <TableCell className="text-right text-sm text-gray-700">{row.margin}</TableCell>
+                  <TableCell className="text-center font-mono font-semibold text-gray-900">
+                    {row.stock}
+                  </TableCell>
+                  <TableCell className="text-center text-sm text-gray-500">{row.minStock}</TableCell>
+                  <TableCell>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${STOCK_BADGE_CLASS[row.stockStatus]}`}>
+                      {STOCK_BADGE_LABEL[row.stockStatus]}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <StockCrudButtons row={row} />
+                  </TableCell>
+                </TableRow>
+              ))
             )}
           </TableBody>
         </Table>
