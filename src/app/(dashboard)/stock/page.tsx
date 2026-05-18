@@ -77,7 +77,7 @@ export default async function StockPage({ searchParams }: PageProps) {
 
   const filtered =
     status === 'all'     ? withComputed
-    : status === 'low_out' ? withComputed.filter((p) => p.stock <= p.minStock)
+    : status === 'low_out' ? withComputed.filter((p) => p.minStock > 0 && p.stock <= p.minStock)
     : withComputed.filter((p) => p.stockStatus === status)
 
   const totalCount  = filtered.length

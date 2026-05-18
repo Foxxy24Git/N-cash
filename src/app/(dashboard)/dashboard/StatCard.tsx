@@ -6,7 +6,7 @@ interface StatCardProps {
   value: string
   icon: LucideIcon
   href: string
-  colorScheme: 'gray' | 'green' | 'dark-green' | 'blue' | 'yellow' | 'red'
+  colorScheme: 'gray' | 'green' | 'dark-green' | 'blue' | 'yellow' | 'red' | 'orange'
 }
 
 const colors: Record<StatCardProps['colorScheme'], { bg: string; icon: string; label: string }> = {
@@ -16,6 +16,7 @@ const colors: Record<StatCardProps['colorScheme'], { bg: string; icon: string; l
   blue:       { bg: 'bg-blue-50 hover:bg-blue-100',     icon: 'text-blue-600',   label: 'text-blue-700' },
   yellow:     { bg: 'bg-yellow-50 hover:bg-yellow-100', icon: 'text-yellow-600', label: 'text-yellow-700' },
   red:        { bg: 'bg-red-50 hover:bg-red-100',       icon: 'text-red-600',    label: 'text-red-700' },
+  orange:     { bg: 'bg-orange-50 hover:bg-orange-100', icon: 'text-orange-500', label: 'text-orange-600' },
 }
 
 export default function StatCard({ label, value, icon: Icon, href, colorScheme }: StatCardProps) {

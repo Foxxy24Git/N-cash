@@ -1,4 +1,4 @@
-import { Wallet, Banknote, Smartphone, Landmark, AlertCircle, TrendingUp } from 'lucide-react'
+import { Wallet, Banknote, Smartphone, Landmark, AlertCircle, TrendingUp, Package } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
 import { formatRupiah } from '@/lib/format'
 import StatCard from './StatCard'
@@ -19,7 +19,7 @@ export default async function DashboardPage() {
   const { todayStart, todayEnd } = getTodayBoundsJakarta()
 
   // invoices stored with date=YYYY-MM-DDT00:00:00Z (UTC midnight); Jakarta bounds contain it
-  const [invoices, paymentLogs, profitItems] = await Promise.all([
+  const [invoices, paymentLogs, profitItems, lowStockResult] = await Promise.all([
     prisma.invoice.findMany({
       where: { deletedAt: null, date: { gte: todayStart, lt: todayEnd } },
       select: { totalAmount: true, paymentMethod: true, paidAt: true },
@@ -38,7 +38,13 @@ export default async function DashboardPage() {
       },
       select: { unitPrice: true, buyPriceSnapshot: true, quantity: true },
     }).catch(() => []),
+    prisma.$queryRaw<[{ count: bigint }]>`
+      SELECT COUNT(*) as count FROM Product
+      WHERE isActive = 1 AND minStock > 0 AND stock <= minStock
+    `.catch(() => [{ count: BigInt(0) }]),
   ])
+
+  const lowStockCount = Number(lowStockResult[0]?.count ?? 0)
 
   let total = 0
   let labaBersih = 0
@@ -110,6 +116,13 @@ export default async function DashboardPage() {
       icon: AlertCircle,
       href: '/reports?date=today&method=BON',
       colorScheme: 'red' as const,
+    },
+    {
+      label: 'Stok Menipis / Habis',
+      value: `${lowStockCount} barang`,
+      icon: Package,
+      href: '/stock?filter=low_stock',
+      colorScheme: 'orange' as const,
     },
   ]
 
