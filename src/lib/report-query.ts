@@ -49,6 +49,7 @@ export interface InvoiceRow {
   time: string        // pre-formatted "HH:mm"
   date: string        // pre-formatted "DD/MM/YYYY"
   totalAmount: number
+  profit: number | null  // null = all manual items (no productId)
   paymentMethod: string
   bankName: string | null
   paidAt: string | null
@@ -61,4 +62,5 @@ export interface ReportTotals {
   qris: number
   bank: number
   bon: number
+  totalProfit: number
 }

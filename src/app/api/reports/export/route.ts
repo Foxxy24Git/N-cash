@@ -60,11 +60,21 @@ export async function GET(request: Request) {
     else if (pm === 'BON') totals.bon += amt
   }
 
+  // Total laba bersih for summary
+  let totalProfit = 0
+  for (const inv of invoices) {
+    for (const item of inv.items) {
+      if (item.productId && item.buyPriceSnapshot !== null) {
+        totalProfit += (Number(item.unitPrice) - Number(item.buyPriceSnapshot)) * Number(item.quantity)
+      }
+    }
+  }
+
   // ─── Build workbook ───────────────────────────────────────────────────────
   const wb = new ExcelJS.Workbook()
   const ws = wb.addWorksheet('Laporan N-Cash')
 
-  const COLS = 9
+  const COLS = 11
   ws.columns = [
     { width: 18 }, // A No Faktur
     { width: 14 }, // B Tanggal
@@ -72,9 +82,11 @@ export async function GET(request: Request) {
     { width: 30 }, // D Nama Barang
     { width: 8  }, // E QTY
     { width: 16 }, // F Harga Satuan
-    { width: 16 }, // G Subtotal
-    { width: 20 }, // H Metode
-    { width: 20 }, // I Dibuat Oleh
+    { width: 16 }, // G Harga Beli
+    { width: 16 }, // H Laba Item
+    { width: 16 }, // I Subtotal
+    { width: 20 }, // J Metode
+    { width: 20 }, // K Dibuat Oleh
   ]
 
   type Fill    = ExcelJS.Fill
@@ -168,6 +180,7 @@ export async function GET(request: Request) {
 
   const summaryRows: [string, number][] = [
     ['Total Pendapatan',             totals.total],
+    ['Total Laba Bersih',            totalProfit],
     ['Total Cash (Cash + Cash COD)', totals.cash],
     ['Total QRIS',                   totals.qris],
     ['Total Transfer Bank',          totals.bank],
@@ -210,7 +223,7 @@ export async function GET(request: Request) {
   row++
 
   // Column headers
-  const colHeaders = ['No Faktur', 'Tanggal', 'Jam', 'Nama Barang', 'QTY', 'Harga Satuan', 'Subtotal', 'Metode Pembayaran', 'Dibuat Oleh']
+  const colHeaders = ['No Faktur', 'Tanggal', 'Jam', 'Nama Barang', 'QTY', 'Harga Satuan', 'Harga Beli', 'Laba Item', 'Subtotal', 'Metode Pembayaran', 'Dibuat Oleh']
   colHeaders.forEach((h, i) => {
     const c = ws.getCell(row, i + 1)
     c.value     = h
@@ -242,6 +255,16 @@ export async function GET(request: Request) {
     const createdByLabel = inv.createdBy?.fullName || (inv.createdBy?.username ? `@${inv.createdBy.username}` : '')
     const firstRow   = row
 
+    // Per-invoice profit
+    let invProfit = 0
+    let hasLinked = false
+    for (const item of inv.items) {
+      if (item.productId && item.buyPriceSnapshot !== null) {
+        invProfit += (Number(item.unitPrice) - Number(item.buyPriceSnapshot)) * Number(item.quantity)
+        hasLinked = true
+      }
+    }
+
     inv.items.forEach((item) => {
       // D: Nama Barang
       const dC = ws.getCell(row, 4)
@@ -261,61 +284,102 @@ export async function GET(request: Request) {
       fC.alignment = { horizontal: 'right' }
       fC.border    = thin
 
-      // G: Subtotal
+      // G: Harga Beli (buyPriceSnapshot)
       const gC = ws.getCell(row, 7)
-      gC.value     = Number(item.subtotal)
-      gC.numFmt    = currFmt
-      gC.alignment = { horizontal: 'right' }
-      gC.border    = thin
+      if (item.buyPriceSnapshot !== null && item.productId) {
+        gC.value     = Number(item.buyPriceSnapshot)
+        gC.numFmt    = currFmt
+        gC.alignment = { horizontal: 'right' }
+      } else {
+        gC.value     = '-'
+        gC.alignment = { horizontal: 'center' }
+      }
+      gC.border = thin
+
+      // H: Laba Item
+      const hItemC = ws.getCell(row, 8)
+      if (item.buyPriceSnapshot !== null && item.productId) {
+        const laba = (Number(item.unitPrice) - Number(item.buyPriceSnapshot)) * Number(item.quantity)
+        hItemC.value     = laba
+        hItemC.numFmt    = currFmt
+        hItemC.alignment = { horizontal: 'right' }
+        hItemC.font      = { color: { argb: laba < 0 ? 'FFDC2626' : 'FF15803D' } }
+      } else {
+        hItemC.value     = '-'
+        hItemC.alignment = { horizontal: 'center' }
+      }
+      hItemC.border = thin
+
+      // I: Subtotal
+      const iC = ws.getCell(row, 9)
+      iC.value     = Number(item.subtotal)
+      iC.numFmt    = currFmt
+      iC.alignment = { horizontal: 'right' }
+      iC.border    = thin
 
       row++
     })
 
     const lastRow = row - 1
 
-    // Set values for merged cols (A B C H) on first item row
+    // Set values for merged cols (A B C J K) on first item row
     ws.getCell(firstRow, 1).value = inv.invoiceNumber
     ws.getCell(firstRow, 2).value = invDate
     ws.getCell(firstRow, 3).value = invTime
 
-    const hC = ws.getCell(firstRow, 8)
-    hC.value = methodLabel
-    hC.fill  = mFill
+    const jC = ws.getCell(firstRow, 10)
+    jC.value = methodLabel
+    jC.fill  = mFill
 
-    ws.getCell(firstRow, 9).value = createdByLabel
+    ws.getCell(firstRow, 11).value = createdByLabel
 
-    // Merge A B C H I vertically if >1 item
+    // Merge A B C J K vertically if >1 item
     if (inv.items.length > 1) {
-      ;([1, 2, 3, 8, 9] as const).forEach(col => {
+      ;([1, 2, 3, 10, 11] as const).forEach(col => {
         ws.mergeCells(firstRow, col, lastRow, col)
         const c = ws.getCell(firstRow, col)
         c.alignment = { vertical: 'middle', wrapText: false }
         c.border    = thin
-        if (col === 8) c.fill = mFill
+        if (col === 10) c.fill = mFill
       })
     } else {
-      ;([1, 2, 3, 8, 9] as const).forEach(col => {
+      ;([1, 2, 3, 10, 11] as const).forEach(col => {
         const c = ws.getCell(firstRow, col)
         c.alignment = { vertical: 'middle' }
         c.border    = thin
-        if (col === 8) c.fill = mFill
+        if (col === 10) c.fill = mFill
       })
     }
 
     // Subtotal row per faktur
-    ws.mergeCells(row, 1, row, 6)
+    ws.mergeCells(row, 1, row, 7)
     const stLabel = ws.getCell(row, 1)
     stLabel.value     = `Total Faktur  ${inv.invoiceNumber}`
     stLabel.font      = { bold: true }
     stLabel.alignment = { horizontal: 'left', vertical: 'middle' }
 
-    for (let col = 1; col <= 6; col++) {
+    for (let col = 1; col <= 7; col++) {
       const c = ws.getCell(row, col)
       c.fill   = grayFill
       c.border = thin
     }
 
-    const stVal = ws.getCell(row, 7)
+    // H: total laba faktur
+    const stLaba = ws.getCell(row, 8)
+    if (hasLinked) {
+      stLaba.value     = invProfit
+      stLaba.numFmt    = currFmt
+      stLaba.font      = { bold: true, color: { argb: invProfit < 0 ? 'FFDC2626' : 'FF15803D' } }
+      stLaba.alignment = { horizontal: 'right' }
+    } else {
+      stLaba.value     = '-'
+      stLaba.alignment = { horizontal: 'center' }
+    }
+    stLaba.fill   = grayFill
+    stLaba.border = thin
+
+    // I: total amount
+    const stVal = ws.getCell(row, 9)
     stVal.value     = Number(inv.totalAmount)
     stVal.numFmt    = currFmt
     stVal.font      = { bold: true }
@@ -323,13 +387,13 @@ export async function GET(request: Request) {
     stVal.border    = thin
     stVal.alignment = { horizontal: 'right' }
 
-    const stH = ws.getCell(row, 8)
-    stH.fill   = grayFill
-    stH.border = thin
+    const stJ = ws.getCell(row, 10)
+    stJ.fill   = grayFill
+    stJ.border = thin
 
-    const stI = ws.getCell(row, 9)
-    stI.fill   = grayFill
-    stI.border = thin
+    const stK = ws.getCell(row, 11)
+    stK.fill   = grayFill
+    stK.border = thin
 
     row++
   }

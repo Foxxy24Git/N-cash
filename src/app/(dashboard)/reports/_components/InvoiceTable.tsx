@@ -39,6 +39,7 @@ export default function InvoiceTable({ rows, totalCount, page, prevUrl, nextUrl 
               <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Jam</TableHead>
               <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Tanggal</TableHead>
               <TableHead className="font-semibold text-gray-700 text-right whitespace-nowrap">Total Belanja</TableHead>
+              <TableHead className="font-semibold text-gray-700 text-right whitespace-nowrap">Laba</TableHead>
               <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Status</TableHead>
               <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Dibuat Oleh</TableHead>
               <TableHead className="font-semibold text-gray-700 text-center whitespace-nowrap">Aksi</TableHead>
@@ -47,7 +48,7 @@ export default function InvoiceTable({ rows, totalCount, page, prevUrl, nextUrl 
           <TableBody>
             {rows.length === 0 ? (
               <TableRow className="hover:bg-transparent">
-                <TableCell colSpan={7} className="p-0">
+                <TableCell colSpan={8} className="p-0">
                   <EmptyState
                     icon={FileSearch}
                     title="Tidak ada transaksi"
@@ -63,6 +64,15 @@ export default function InvoiceTable({ rows, totalCount, page, prevUrl, nextUrl 
                   <TableCell className="text-gray-600 text-sm">{row.date}</TableCell>
                   <TableCell className="text-right font-mono font-semibold text-gray-900">
                     {formatRupiah(row.totalAmount)}
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-sm">
+                    {row.profit === null ? (
+                      <span className="text-gray-400">—</span>
+                    ) : row.profit < 0 ? (
+                      <span className="text-red-600">{formatRupiah(row.profit)}</span>
+                    ) : (
+                      <span className="text-emerald-700">{formatRupiah(row.profit)}</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     {(() => {

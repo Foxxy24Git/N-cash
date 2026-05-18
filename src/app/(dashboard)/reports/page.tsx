@@ -57,16 +57,27 @@ export default async function ReportsPage({ searchParams }: PageProps) {
     where.invoiceNumber = { contains: search }
   }
 
+  const itemsProfitSelect = {
+    select: { productId: true, unitPrice: true, buyPriceSnapshot: true, quantity: true },
+  }
+
   const [allForTotals, paginatedRaw, totalCount] = await Promise.all([
     prisma.invoice.findMany({
       where,
-      select: { totalAmount: true, paymentMethod: true, paidMethod: true, paidAt: true },
+      select: {
+        totalAmount: true,
+        paymentMethod: true,
+        paidMethod: true,
+        paidAt: true,
+        items: itemsProfitSelect,
+      },
     }),
     prisma.invoice.findMany({
       where,
       include: {
         bank: { select: { name: true } },
         createdBy: { select: { id: true, fullName: true, username: true } },
+        items: itemsProfitSelect,
       },
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * PAGE_SIZE,
@@ -75,7 +86,15 @@ export default async function ReportsPage({ searchParams }: PageProps) {
     prisma.invoice.count({ where }),
   ])
 
-  const totals: ReportTotals = { total: 0, cash: 0, qris: 0, bank: 0, bon: 0 }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const calcProfit = (items: any[]): number | null => {
+    const linked = items.filter((i: any) => i.productId !== null && i.buyPriceSnapshot !== null)
+    if (linked.length === 0) return null
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return linked.reduce((sum: number, i: any) => sum + (Number(i.unitPrice) - Number(i.buyPriceSnapshot)) * Number(i.quantity), 0)
+  }
+
+  const totals: ReportTotals = { total: 0, cash: 0, qris: 0, bank: 0, bon: 0, totalProfit: 0 }
   for (const inv of allForTotals) {
     const amt = Number(inv.totalAmount)
     totals.total += amt
@@ -95,6 +114,11 @@ export default async function ReportsPage({ searchParams }: PageProps) {
     } else if (inv.paymentMethod === 'Transfer Bank') {
       totals.bank += amt
     }
+    for (const item of inv.items) {
+      if (item.productId && item.buyPriceSnapshot !== null) {
+        totals.totalProfit += (Number(item.unitPrice) - Number(item.buyPriceSnapshot)) * Number(item.quantity)
+      }
+    }
   }
 
   const rows: InvoiceRow[] = paginatedRaw.map((inv) => ({
@@ -103,6 +127,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
     time:          formatTimeWIB(inv.createdAt.toISOString()),
     date:          formatDateWIB(inv.date.toISOString()),
     totalAmount:   Number(inv.totalAmount),
+    profit:        calcProfit(inv.items),
     paymentMethod: inv.paymentMethod,
     bankName:      inv.bank?.name ?? null,
     paidAt:        inv.paidAt?.toISOString() ?? null,

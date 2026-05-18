@@ -12,6 +12,8 @@ interface Item {
   itemName: string
   quantity: string
   unitPrice: string
+  buyPriceSnapshot: string | null
+  productId: string | null
   subtotal: string
 }
 
@@ -179,33 +181,74 @@ export default function DetailModal({ invoiceId, open, onClose }: Props) {
                     <th className="text-left px-3 py-2.5 font-semibold text-gray-700">Nama Barang</th>
                     <th className="text-center px-3 py-2.5 font-semibold text-gray-700">QTY</th>
                     <th className="text-right px-3 py-2.5 font-semibold text-gray-700">Harga Satuan</th>
+                    <th className="text-right px-3 py-2.5 font-semibold text-gray-700">Harga Beli</th>
+                    <th className="text-right px-3 py-2.5 font-semibold text-gray-700">Laba Item</th>
                     <th className="text-right px-3 py-2.5 font-semibold text-gray-700">Subtotal</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {data.items.map((item, i) => (
-                    <tr key={item.id} className={i % 2 === 1 ? 'bg-gray-50/50' : ''}>
-                      <td className="px-3 py-2 text-gray-900">{item.itemName}</td>
-                      <td className="px-3 py-2 text-center text-gray-600">{Number(item.quantity)}</td>
-                      <td className="px-3 py-2 text-right font-mono text-gray-700">
-                        {formatRupiah(Number(item.unitPrice))}
-                      </td>
-                      <td className="px-3 py-2 text-right font-mono font-semibold text-gray-900">
-                        {formatRupiah(Number(item.subtotal))}
-                      </td>
-                    </tr>
-                  ))}
+                  {data.items.map((item, i) => {
+                    const bp = item.buyPriceSnapshot !== null ? Number(item.buyPriceSnapshot) : null
+                    const itemProfit = bp !== null && item.productId
+                      ? (Number(item.unitPrice) - bp) * Number(item.quantity)
+                      : null
+                    return (
+                      <tr key={item.id} className={i % 2 === 1 ? 'bg-gray-50/50' : ''}>
+                        <td className="px-3 py-2 text-gray-900">{item.itemName}</td>
+                        <td className="px-3 py-2 text-center text-gray-600">{Number(item.quantity)}</td>
+                        <td className="px-3 py-2 text-right font-mono text-gray-700">
+                          {formatRupiah(Number(item.unitPrice))}
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono text-gray-500">
+                          {bp !== null ? formatRupiah(bp) : <span className="text-gray-300">—</span>}
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono">
+                          {itemProfit === null ? (
+                            <span className="text-gray-300">—</span>
+                          ) : itemProfit < 0 ? (
+                            <span className="text-red-600">{formatRupiah(itemProfit)}</span>
+                          ) : (
+                            <span className="text-emerald-700">{formatRupiah(itemProfit)}</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono font-semibold text-gray-900">
+                          {formatRupiah(Number(item.subtotal))}
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
 
-            {/* Total */}
-            <div className="flex items-center justify-between pt-2 border-t border-gray-200">
-              <span className="text-sm font-medium text-gray-600">TOTAL BELANJA</span>
-              <span className="text-xl font-bold text-gray-900 font-mono">
-                {formatRupiah(Number(data.totalAmount))}
-              </span>
-            </div>
+            {/* Totals */}
+            {(() => {
+              const invoiceProfit = data.items.reduce((sum, item) => {
+                if (item.productId && item.buyPriceSnapshot !== null) {
+                  return sum + (Number(item.unitPrice) - Number(item.buyPriceSnapshot)) * Number(item.quantity)
+                }
+                return sum
+              }, 0)
+              const hasLinked = data.items.some(i => i.productId && i.buyPriceSnapshot !== null)
+              return (
+                <div className="space-y-2 pt-2 border-t border-gray-200">
+                  {hasLinked && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-emerald-700">LABA BERSIH FAKTUR</span>
+                      <span className={`text-base font-bold font-mono ${invoiceProfit < 0 ? 'text-red-600' : 'text-emerald-700'}`}>
+                        {formatRupiah(invoiceProfit)}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-600">TOTAL BELANJA</span>
+                    <span className="text-xl font-bold text-gray-900 font-mono">
+                      {formatRupiah(Number(data.totalAmount))}
+                    </span>
+                  </div>
+                </div>
+              )
+            })()}
           </div>
         )}
       </DialogContent>
