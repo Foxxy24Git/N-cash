@@ -18,10 +18,14 @@ import { deleteProduct } from '../_actions/productActions'
 interface Props {
   id: string
   name: string
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
-export function DeleteProductDialog({ id, name }: Props) {
-  const [open, setOpen] = useState(false)
+export function DeleteProductDialog({ id, name, open: externalOpen, onOpenChange }: Props) {
+  const [internalOpen, setInternalOpen] = useState(false)
+  const open = externalOpen ?? internalOpen
+  const setOpen = onOpenChange ?? setInternalOpen
   const [isPending, startTransition] = useTransition()
 
   function handleDelete() {
@@ -38,11 +42,13 @@ export function DeleteProductDialog({ id, name }: Props) {
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger asChild>
-        <button className="px-2 py-1 text-xs rounded border border-gray-200 text-red-500 hover:bg-red-50 transition-colors">
-          🗑️ Hapus
-        </button>
-      </AlertDialogTrigger>
+      {!onOpenChange && (
+        <AlertDialogTrigger asChild>
+          <button className="px-2 py-1 text-xs rounded border border-gray-200 text-red-500 hover:bg-red-50 transition-colors">
+            🗑️ Hapus
+          </button>
+        </AlertDialogTrigger>
+      )}
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Sembunyikan Barang?</AlertDialogTitle>

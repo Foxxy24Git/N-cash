@@ -33,10 +33,14 @@ interface Props {
   productName: string
   currentStock: number
   unit: string
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
-export function StockAdjustmentDialog({ productId, productName, currentStock, unit }: Props) {
-  const [open, setOpen] = useState(false)
+export function StockAdjustmentDialog({ productId, productName, currentStock, unit, open: externalOpen, onOpenChange }: Props) {
+  const [internalOpen, setInternalOpen] = useState(false)
+  const open = externalOpen ?? internalOpen
+  const setOpen = onOpenChange ?? setInternalOpen
   const [isPending, startTransition] = useTransition()
   const [newStock, setNewStock] = useState('')
   const [reason, setReason] = useState('')
@@ -79,11 +83,13 @@ export function StockAdjustmentDialog({ productId, productName, currentStock, un
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <button className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
-          ✏️ Stok
-        </button>
-      </DialogTrigger>
+      {!onOpenChange && (
+        <DialogTrigger asChild>
+          <button className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
+            ✏️ Stok
+          </button>
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle>Sesuaikan Stok — {productName}</DialogTitle>

@@ -21,11 +21,13 @@ const UNIT_OPTIONS = [
 ]
 
 type Props =
-  | { mode: 'add'; product?: undefined }
-  | { mode: 'edit'; product: ProductRow }
+  | { mode: 'add'; product?: undefined; open?: boolean; onOpenChange?: (open: boolean) => void }
+  | { mode: 'edit'; product: ProductRow; open?: boolean; onOpenChange?: (open: boolean) => void }
 
-export function ProductFormDialog({ mode, product }: Props) {
-  const [open, setOpen] = useState(false)
+export function ProductFormDialog({ mode, product, open: externalOpen, onOpenChange }: Props) {
+  const [internalOpen, setInternalOpen] = useState(false)
+  const open = externalOpen ?? internalOpen
+  const setOpen = onOpenChange ?? setInternalOpen
   const [isPending, startTransition] = useTransition()
   const [unit, setUnit]                 = useState('')
   const [buyPrice, setBuyPrice]         = useState('')
@@ -80,7 +82,7 @@ export function ProductFormDialog({ mode, product }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      {!onOpenChange && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{mode === 'add' ? 'Tambah Barang' : 'Edit Barang'}</DialogTitle>
