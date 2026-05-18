@@ -1,4 +1,4 @@
-import { Wallet, Banknote, Smartphone, Landmark, AlertCircle } from 'lucide-react'
+import { Wallet, Banknote, Smartphone, Landmark, AlertCircle, TrendingUp } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
 import { formatRupiah } from '@/lib/format'
 import StatCard from './StatCard'
@@ -19,7 +19,7 @@ export default async function DashboardPage() {
   const { todayStart, todayEnd } = getTodayBoundsJakarta()
 
   // invoices stored with date=YYYY-MM-DDT00:00:00Z (UTC midnight); Jakarta bounds contain it
-  const [invoices, paymentLogs] = await Promise.all([
+  const [invoices, paymentLogs, profitItems] = await Promise.all([
     prisma.invoice.findMany({
       where: { deletedAt: null, date: { gte: todayStart, lt: todayEnd } },
       select: { totalAmount: true, paymentMethod: true, paidAt: true },
@@ -29,9 +29,19 @@ export default async function DashboardPage() {
       where: { paidAt: { gte: todayStart, lt: todayEnd } },
       select: { amount: true, paidMethod: true },
     }).catch(() => []),
+    // Items linked to stock with buy price snapshot — used for net profit calculation
+    prisma.invoiceItem.findMany({
+      where: {
+        productId: { not: null },
+        buyPriceSnapshot: { not: null },
+        invoice: { deletedAt: null, date: { gte: todayStart, lt: todayEnd } },
+      },
+      select: { unitPrice: true, buyPriceSnapshot: true, quantity: true },
+    }).catch(() => []),
   ])
 
   let total = 0
+  let labaBersih = 0
   let cash = 0
   let qris = 0
   let bank = 0
@@ -47,6 +57,10 @@ export default async function DashboardPage() {
     // settled BON: total already counted above; cash/qris/bank comes from PaymentLog below
   }
 
+  for (const item of profitItems) {
+    labaBersih += (Number(item.unitPrice) - Number(item.buyPriceSnapshot)) * Number(item.quantity)
+  }
+
   for (const log of paymentLogs) {
     const amount = Number(log.amount)
     if (log.paidMethod === 'Cash' || log.paidMethod === 'Cash COD') cash += amount
@@ -56,11 +70,18 @@ export default async function DashboardPage() {
 
   const cards = [
     {
-      label: 'Total Pendapatan (Hari Ini)',
+      label: 'Total Omzet (Hari Ini)',
       value: formatRupiah(total),
       icon: Wallet,
       href: '/reports?date=today',
       colorScheme: 'gray' as const,
+    },
+    {
+      label: 'Keuntungan Bersih (Hari Ini)',
+      value: formatRupiah(labaBersih),
+      icon: TrendingUp,
+      href: '/reports?date=today',
+      colorScheme: 'dark-green' as const,
     },
     {
       label: 'Total Pembayaran Cash',
@@ -98,7 +119,7 @@ export default async function DashboardPage() {
         <h1 className="text-xl font-semibold text-gray-900 mb-6">Ringkasan Hari Ini</h1>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {cards.map((card) => (
-            <StatCard key={card.href} {...card} />
+            <StatCard key={card.label} {...card} />
           ))}
         </div>
       </div>
