@@ -57,6 +57,7 @@ export default function StockFilterBar({ q: initialQ, status: initialStatus }: P
     const s = val as StatusFilter
     setStatus(s)
     navigate(q, s)
+    setSheetOpen(false)
   }
 
   const filterControls = (

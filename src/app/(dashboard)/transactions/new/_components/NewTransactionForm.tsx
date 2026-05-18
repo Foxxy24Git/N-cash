@@ -342,7 +342,7 @@ function ItemRow({
         />
         {item.unit !== null && item.stock !== null && (
           <div className="flex items-center gap-1 mt-1">
-            <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full', stockBadgeColor)}>
+            <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full border', stockBadgeColor)}>
               📦 {item.stock} {item.unit}
             </span>
           </div>

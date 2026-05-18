@@ -25,7 +25,7 @@ export function StockCrudButtons({ row }: Props) {
   return (
     <>
       {/* Desktop: inline trigger buttons (dialogs manage their own open state) */}
-      <div className="hidden sm:flex items-center justify-center gap-1">
+      <div className="hidden md:flex items-center justify-center gap-1">
         <StockAdjustmentDialog
           productId={row.id}
           productName={row.name}
@@ -37,7 +37,7 @@ export function StockCrudButtons({ row }: Props) {
       </div>
 
       {/* Mobile: three-dot dropdown + controlled dialogs */}
-      <div className="flex sm:hidden items-center justify-center">
+      <div className="flex md:hidden items-center justify-center">
         <StockAdjustmentDialog
           productId={row.id}
           productName={row.name}
