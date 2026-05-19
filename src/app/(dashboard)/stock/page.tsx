@@ -49,7 +49,18 @@ export default async function StockPage({ searchParams }: PageProps) {
       minStock:     true,
       notes:        true,
     },
+  }).catch((error: unknown) => {
+    console.error('[StockPage] Failed to fetch products:', error)
+    return null
   })
+
+  if (!allProducts) {
+    return (
+      <div className="max-w-6xl mx-auto py-20 text-center text-gray-500">
+        Gagal memuat data stok. Silakan muat ulang halaman.
+      </div>
+    )
+  }
 
   const withComputed = allProducts.map((p): ProductRow => {
     const buyPrice     = Number(p.buyPrice)

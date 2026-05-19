@@ -14,7 +14,7 @@ export default async function DashboardLayout({
   const session = await auth()
   if (!session) redirect('/login')
 
-  const company = await prisma.companyProfile.findFirst()
+  const company = await prisma.companyProfile.findFirst().catch(() => null)
   const companyName = company?.name ?? 'N-Cash'
 
   return (

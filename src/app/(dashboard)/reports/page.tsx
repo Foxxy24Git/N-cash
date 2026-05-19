@@ -1,8 +1,16 @@
 import { Suspense } from 'react'
+import { type Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { parseReportParams, PAGE_SIZE } from '@/lib/report-query'
 import type { InvoiceRow, ReportTotals } from '@/lib/report-query'
 import { formatDateWIB, formatTimeWIB } from '@/lib/format'
+
+interface ProfitItem {
+  productId: string | null
+  unitPrice: Prisma.Decimal
+  buyPriceSnapshot: Prisma.Decimal | null
+  quantity: Prisma.Decimal
+}
 import SummaryCards from './_components/SummaryCards'
 import InvoiceTable from './_components/InvoiceTable'
 import FilterBar from './_components/FilterBar'
@@ -18,8 +26,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
   const params = parseReportParams(searchParams)
   const { dateFrom, dateTo, method, search, page } = params
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const where: any = {
+  const where: Prisma.InvoiceWhereInput = {
     deletedAt: null,
     date: { gte: dateFrom, lt: dateTo },
   }
@@ -84,14 +91,15 @@ export default async function ReportsPage({ searchParams }: PageProps) {
       take: PAGE_SIZE,
     }),
     prisma.invoice.count({ where }),
-  ])
+  ]).catch((error: unknown) => {
+    console.error('[ReportsPage] Failed to fetch invoices:', error)
+    throw error
+  })
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const calcProfit = (items: any[]): number | null => {
-    const linked = items.filter((i: any) => i.productId !== null && i.buyPriceSnapshot !== null)
+  const calcProfit = (items: ProfitItem[]): number | null => {
+    const linked = items.filter((i) => i.productId !== null && i.buyPriceSnapshot !== null)
     if (linked.length === 0) return null
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return linked.reduce((sum: number, i: any) => sum + (Number(i.unitPrice) - Number(i.buyPriceSnapshot)) * Number(i.quantity), 0)
+    return linked.reduce((sum: number, i) => sum + (Number(i.unitPrice) - Number(i.buyPriceSnapshot)) * Number(i.quantity), 0)
   }
 
   const totals: ReportTotals = { total: 0, cash: 0, qris: 0, bank: 0, bon: 0, totalProfit: 0 }
