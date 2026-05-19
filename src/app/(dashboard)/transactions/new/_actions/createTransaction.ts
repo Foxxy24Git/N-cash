@@ -2,6 +2,7 @@
 
 import { Prisma } from '@prisma/client'
 import { z } from 'zod'
+import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 
@@ -126,6 +127,8 @@ export async function createTransaction(payload: unknown): Promise<Result> {
       }
     })
 
+    revalidatePath('/stock')
+    revalidatePath('/dashboard')
     return warningParts.length > 0
       ? { success: true, warning: warningParts.join('. ') }
       : { success: true }

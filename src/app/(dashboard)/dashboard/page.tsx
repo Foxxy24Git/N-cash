@@ -40,7 +40,7 @@ export default async function DashboardPage() {
     }).catch(() => []),
     prisma.$queryRaw<[{ count: bigint }]>`
       SELECT COUNT(*) as count FROM Product
-      WHERE isActive = 1 AND minStock > 0 AND stock <= minStock
+      WHERE isActive = 1 AND (stock = 0 OR (minStock > 0 AND stock <= minStock))
     `.catch(() => [{ count: BigInt(0) }]),
   ])
 
