@@ -10,12 +10,9 @@ async function main() {
   const admin = await prisma.user.findUnique({ where: { username: 'admin' } })
   if (!admin) throw new Error('Admin user not found. Run seed first.')
 
-  const result = await prisma.invoice.updateMany({
-    where: { createdById: null },
-    data: { createdById: admin.id },
-  })
+  const count = await prisma.$executeRaw`UPDATE "Invoice" SET "createdById" = ${admin.id} WHERE "createdById" IS NULL`
 
-  console.log(`Backfilled ${result.count} invoice(s) → createdById = ${admin.id}`)
+  console.log(`Backfilled ${count} invoice(s) → createdById = ${admin.id}`)
 }
 
 main()
