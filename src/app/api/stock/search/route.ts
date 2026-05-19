@@ -35,16 +35,17 @@ export async function GET(request: Request) {
       LIMIT ${limit}
     `
 
-    return Response.json(
-      products.map((p) => ({
-        id: p.id,
-        name: p.name,
-        unit: p.unit,
-        sellingPrice: Number(p.sellingPrice),
-        stock: p.stock,
-        minStock: Number(p.minStock),
-      }))
-    )
+    const mapped = products.map((p) => ({
+      id: p.id,
+      name: p.name,
+      unit: p.unit,
+      sellingPrice: Number(p.sellingPrice),
+      stock: p.stock,
+      minStock: Number(p.minStock),
+    }))
+
+    console.log('[stock/search] query:', q, '| results:', mapped.length)
+    return Response.json(mapped)
   } catch (err) {
     console.error('[stock/search]', err)
     return Response.json({ error: 'Gagal mencari produk' }, { status: 500 })

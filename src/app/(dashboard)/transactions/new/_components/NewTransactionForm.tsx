@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { format } from 'date-fns'
 import { Plus, Trash2, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -135,14 +136,23 @@ function ProductAutocomplete({
   const [results, setResults] = useState<ProductResult[]>([])
   const [highlighted, setHighlighted] = useState(-1)
   const [loading, setLoading] = useState(false)
-  const [dropUp, setDropUp] = useState(false)
+  const [dropStyle, setDropStyle] = useState<React.CSSProperties>({})
+  const [mounted, setMounted] = useState(false)
   const wrapperRef = useRef<HTMLDivElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
   const itemRefs = useRef<(HTMLDivElement | null)[]>([])
 
-  // Click/touch outside to close
+  // SSR safety: portal requires document
+  useEffect(() => { setMounted(true) }, [])
+
+  // Click/touch outside both the input wrapper AND the portal dropdown
   useEffect(() => {
     function handlePointerDown(e: PointerEvent) {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+      const target = e.target as Node
+      if (
+        !wrapperRef.current?.contains(target) &&
+        !dropdownRef.current?.contains(target)
+      ) {
         setOpen(false)
         setHighlighted(-1)
       }
@@ -158,7 +168,7 @@ function ProductAutocomplete({
     }
   }, [highlighted])
 
-  // Debounced fetch + measure drop direction
+  // Debounced fetch — position dropdown with fixed coords to escape overflow containers
   useEffect(() => {
     if (value.length < 2) {
       setOpen(false)
@@ -168,11 +178,15 @@ function ProductAutocomplete({
 
     const controller = new AbortController()
     const timer = setTimeout(async () => {
-      // Measure available space before opening
       if (wrapperRef.current) {
         const rect = wrapperRef.current.getBoundingClientRect()
         const spaceBelow = window.innerHeight - rect.bottom
-        setDropUp(spaceBelow < 240 && rect.top > 240)
+        const isDropUp = spaceBelow < 240 && rect.top > 240
+        setDropStyle(
+          isDropUp
+            ? { position: 'fixed', bottom: window.innerHeight - rect.top + 4, left: rect.left, width: rect.width, zIndex: 9999 }
+            : { position: 'fixed', top: rect.bottom + 4, left: rect.left, width: rect.width, zIndex: 9999 }
+        )
       }
 
       setLoading(true)
@@ -196,6 +210,7 @@ function ProductAutocomplete({
   }, [value])
 
   const handleSelect = (product: ProductResult) => {
+    console.log('Item dipilih:', { id: product.id, name: product.name, sellingPrice: product.sellingPrice, stock: product.stock, unit: product.unit })
     onChange(product.name)
     onSelect(product)
     setOpen(false)
@@ -232,12 +247,11 @@ function ProductAutocomplete({
         className="w-full px-2.5 py-2 text-sm border border-gray-300 rounded-lg
           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
       />
-      {open && (
+      {open && mounted && createPortal(
         <div
-          className={cn(
-            'absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto',
-            dropUp ? 'bottom-full mb-1' : 'top-full mt-1'
-          )}
+          ref={dropdownRef}
+          style={dropStyle}
+          className="bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto"
         >
           {loading ? (
             <p className="px-3 py-2 text-sm text-gray-400 italic">Mencari...</p>
@@ -250,13 +264,13 @@ function ProductAutocomplete({
                   ref={(el) => { itemRefs.current[idx] = el }}
                   onPointerDown={() => handleSelect(product)}
                   className={cn(
-                    'px-3 min-h-[44px] flex items-center cursor-pointer hover:bg-gray-50',
+                    'px-3 min-h-[44px] flex items-center gap-1.5 cursor-pointer hover:bg-gray-50',
                     idx === highlighted && 'bg-blue-50'
                   )}
                 >
-                  <span className="font-medium">{product.name}</span>
-                  {' — '}
-                  <span className={cn('text-xs', STOCK_TEXT_CLASS[status])}>
+                  <span className="font-medium flex-1 truncate">{product.name}</span>
+                  <span className="text-gray-300 shrink-0">—</span>
+                  <span className={cn('text-xs shrink-0', STOCK_TEXT_CLASS[status])}>
                     Stok: {product.stock} {product.unit}
                   </span>
                 </div>
@@ -267,7 +281,8 @@ function ProductAutocomplete({
               Tidak ditemukan — lanjut ketik manual
             </p>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
